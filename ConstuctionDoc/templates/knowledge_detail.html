@@ -1,0 +1,229 @@
+{% extends "base.html" %}
+
+{% block title %}{{ tip.title }} - База знаний{% endblock %}
+
+{% block extra_css %}
+<style>
+    .tip-content {
+        background: var(--bs-card-bg);
+        border-radius: 20px;
+        padding: 35px;
+        margin-bottom: 20px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        animation: fadeIn 0.5s ease-in;
+    }
+    
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(-20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .step-item {
+        background: var(--bs-secondary-bg);
+        border-radius: 12px;
+        padding: 12px 18px;
+        margin-bottom: 12px;
+        display: flex;
+        align-items: center;
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+    
+    .step-item:hover {
+        transform: translateX(5px);
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    
+    .step-number {
+        background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+        color: white;
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 15px;
+        font-size: 14px;
+        font-weight: bold;
+        flex-shrink: 0;
+    }
+    
+    .safety-box {
+        background: #fff3cd;
+        border-left: 4px solid #ffc107;
+        padding: 18px;
+        border-radius: 12px;
+        margin-top: 20px;
+        transition: all 0.3s;
+    }
+    
+    .safety-box:hover {
+        background: #ffeaa7;
+        transform: scale(1.01);
+    }
+    
+    [data-bs-theme="dark"] .safety-box {
+        background: #2d2a1a;
+        border-left-color: #ffc107;
+        color: #ffd966;
+    }
+    
+    .materials-box {
+        background: #d1ecf1;
+        border-left: 4px solid #17a2b8;
+        padding: 18px;
+        border-radius: 12px;
+        margin-top: 20px;
+        transition: all 0.3s;
+    }
+    
+    .materials-box:hover {
+        background: #b8e4ea;
+        transform: scale(1.01);
+    }
+    
+    [data-bs-theme="dark"] .materials-box {
+        background: #1a2d30;
+        border-left-color: #17a2b8;
+        color: #9ee7f0;
+    }
+    
+    .badge-category {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        padding: 6px 14px;
+        font-size: 0.85rem;
+        border-radius: 20px;
+        color: white;
+    }
+    
+    .section-divider {
+        border-bottom: 2px solid var(--bs-border-color);
+        margin: 20px 0;
+    }
+    
+    .section-icon {
+        color: var(--bs-primary);
+        margin-right: 10px;
+    }
+    
+    @media (max-width: 768px) {
+        .tip-content {
+            padding: 20px;
+        }
+        
+        .step-item {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        
+        .step-number {
+            margin-bottom: 8px;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('index') }}">Главная</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('knowledge_base') }}">База знаний</a></li>
+            <li class="breadcrumb-item active">{{ tip.title|truncate(50) }}</li>
+        </ol>
+    </nav>
+</div>
+
+<div class="row">
+    <div class="col-lg-10 mx-auto">
+        <div class="tip-content">
+            <div class="d-flex justify-content-between align-items-start mb-3">
+                {% if tip.category %}
+                <span class="badge-category">
+                    <i class="fas fa-tag"></i> {{ tip.category|e }}
+                </span>
+                {% else %}
+                <span class="badge-category">
+                    <i class="fas fa-info-circle"></i> Общее
+                </span>
+                {% endif %}
+                <i class="fas fa-lightbulb text-warning fs-2"></i>
+            </div>
+            
+            <h2 class="mb-4">{{ tip.title|e }}</h2>
+            
+            <!-- Описание -->
+            {% if tip.content %}
+            <div class="mb-4">
+                <h5><i class="fas fa-info-circle section-icon"></i> Описание</h5>
+                <div class="section-divider"></div>
+                <p style="line-height: 1.6;">{{ tip.content|e|replace('\n', '<br>')|safe }}</p>
+            </div>
+            {% endif %}
+            
+            <!-- Пошаговая инструкция -->
+            {% if tip.steps and tip.steps.strip() %}
+            <div class="mb-4">
+                <h5><i class="fas fa-list-check section-icon"></i> Пошаговая инструкция</h5>
+                <div class="section-divider"></div>
+                {% set steps_list = tip.steps.split('\n') %}
+                {% for step in steps_list %}
+                    {% if step.strip() %}
+                    <div class="step-item">
+                        <div class="step-number">{{ loop.index }}</div>
+                        <div>{{ step.strip()|e }}</div>
+                    </div>
+                    {% endif %}
+                {% endfor %}
+            </div>
+            {% endif %}
+            
+            <!-- Необходимые материалы -->
+            {% if tip.materials and tip.materials.strip() %}
+            <div class="materials-box">
+                <h5><i class="fas fa-tools section-icon"></i> Необходимые материалы и инструменты</h5>
+                <p class="mb-0 mt-2">{{ tip.materials|e }}</p>
+            </div>
+            {% endif %}
+            
+            <!-- Техника безопасности -->
+            {% if tip.safety and tip.safety.strip() %}
+            <div class="safety-box">
+                <h5><i class="fas fa-shield-alt section-icon"></i> Техника безопасности</h5>
+                <p class="mb-0 mt-2">{{ tip.safety|e }}</p>
+            </div>
+            {% endif %}
+            
+            <!-- Если нет никакого содержимого -->
+            {% if not tip.content and not tip.steps and not tip.materials and not tip.safety %}
+            <div class="alert alert-info text-center">
+                <i class="fas fa-info-circle"></i> Полное содержание подсказки пока не добавлено
+            </div>
+            {% endif %}
+        </div>
+        
+        <!-- Кнопка назад -->
+        <div class="text-center mb-4">
+            <a href="{{ url_for('knowledge_base') }}" class="btn btn-primary">
+                <i class="fas fa-arrow-left"></i> Вернуться к подсказкам
+            </a>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Добавляем плавное появление элементов
+    document.addEventListener('DOMContentLoaded', function() {
+        const stepItems = document.querySelectorAll('.step-item');
+        stepItems.forEach((item, index) => {
+            item.style.opacity = '0';
+            item.style.transform = 'translateX(-20px)';
+            setTimeout(() => {
+                item.style.transition = 'all 0.3s ease';
+                item.style.opacity = '1';
+                item.style.transform = 'translateX(0)';
+            }, index * 100);
+        });
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,520 @@
+{% extends "base.html" %}
+
+{% block title %}График работ - {{ site.name }}{% endblock %}
+
+{% block extra_css %}
+<link href="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css" rel="stylesheet">
+<style>
+    /* ФОРСИРОВАННОЕ СТАТИЧНОЕ ОТОБРАЖЕНИЕ - БЕЗ АНИМАЦИЙ */
+    * {
+        animation: none !important;
+        transition: none !important;
+        transform: none !important;
+    }
+    
+    .row {
+        display: flex !important;
+        flex-wrap: wrap !important;
+        margin-right: -8px !important;
+        margin-left: -8px !important;
+    }
+    
+    .col-6 {
+        flex: 0 0 auto !important;
+        width: 50% !important;
+        padding-right: 8px !important;
+        padding-left: 8px !important;
+    }
+    
+    @media (min-width: 768px) {
+        .col-md-3 {
+            flex: 0 0 auto !important;
+            width: 25% !important;
+        }
+    }
+    
+    .card, .card-body, .card-header, .container-fluid, .fc {
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+    }
+    
+    .card {
+        background: var(--bg-card) !important;
+        border: 1px solid var(--border) !important;
+        margin-bottom: 20px !important;
+    }
+    
+    /* Карточки не поднимаются */
+    .card:hover, .stats-card:hover, .risk-card:hover {
+        transform: none !important;
+        box-shadow: none !important;
+    }
+    
+    .back-button {
+        display: inline-flex !important;
+        align-items: center;
+        gap: 8px;
+        background: var(--bg-card);
+        color: var(--text-primary);
+        padding: 10px 20px;
+        border-radius: 40px;
+        text-decoration: none;
+        font-size: 0.9rem;
+        border: 1px solid var(--border);
+        cursor: pointer;
+        margin-bottom: 20px;
+    }
+    
+    .back-button:hover {
+        transform: none !important;
+        border-color: var(--accent);
+    }
+    
+    .btn-outline-premium {
+        background: transparent;
+        border: 2px solid var(--primary);
+        color: var(--primary);
+        padding: 8px 20px;
+        border-radius: 40px;
+        font-weight: 500;
+    }
+    
+    .btn-outline-premium:hover {
+        background: var(--primary);
+        color: white;
+        transform: none !important;
+    }
+    
+    .btn-premium:hover {
+        transform: none !important;
+    }
+    
+    .stats-card {
+        background: var(--bg-card);
+        border-radius: 20px;
+        padding: 20px 12px;
+        text-align: center;
+        border: 1px solid var(--border);
+        height: 100%;
+    }
+    
+    .stats-number {
+        font-size: 28px;
+        font-weight: 700;
+        background: linear-gradient(135deg, var(--primary), var(--accent));
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+    }
+    
+    .risk-card {
+        border-radius: 16px;
+        margin-bottom: 12px;
+        padding: 16px;
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+    }
+    
+    .risk-danger { border-left: 4px solid #dc2626; }
+    .risk-warning { border-left: 4px solid #f59e0b; }
+    .risk-info { border-left: 4px solid #3b82f6; }
+    
+    .gantt-chart {
+        overflow-x: auto;
+        margin-top: 20px;
+    }
+    
+    .gantt-row {
+        display: flex;
+        border-bottom: 1px solid var(--border);
+        padding: 10px 0;
+        align-items: center;
+    }
+    
+    .gantt-label {
+        width: 250px;
+        flex-shrink: 0;
+        font-size: 13px;
+        font-weight: 500;
+    }
+    
+    .gantt-bar-container {
+        flex: 1;
+        position: relative;
+        height: 36px;
+    }
+    
+    .gantt-bar {
+        position: absolute;
+        height: 28px;
+        border-radius: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 11px;
+        font-weight: 600;
+        color: white;
+        cursor: pointer;
+    }
+    
+    .gantt-bar:hover {
+        opacity: 0.9;
+        transform: none !important;
+    }
+    
+    .status-plan { background: #94a3b8; }
+    .status-active { background: #3b82f6; }
+    .status-completed { background: #22c55e; }
+    .status-delayed { background: #ef4444; }
+    
+    .fc {
+        background: var(--bg-card);
+        border-radius: 20px;
+        padding: 10px;
+    }
+    
+    .fc .fc-toolbar-title { color: var(--text-primary); }
+    .fc .fc-button-primary {
+        background: var(--primary);
+        border-color: var(--primary);
+    }
+    .fc .fc-button-primary:hover {
+        background: var(--primary-dark);
+        transform: none !important;
+    }
+    .fc .fc-daygrid-day-number { color: var(--text-primary); }
+    .fc .fc-col-header-cell-cushion { color: var(--text-primary); font-weight: 600; }
+    
+    .notification-badge {
+        position: relative;
+        cursor: pointer;
+    }
+    .notification-badge .badge {
+        position: absolute;
+        top: -8px;
+        right: -8px;
+        background: #dc2626;
+        border-radius: 50%;
+        padding: 4px 6px;
+        font-size: 10px;
+    }
+    
+    /* Убираем анимацию у всех элементов */
+    .btn, .card, .stats-card, .risk-card, .back-button, .gantt-bar {
+        transition: none !important;
+        animation: none !important;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <a href="javascript:void(0);" onclick="goBack()" class="back-button">
+            <i class="fas fa-arrow-left"></i> Назад
+        </a>
+        <div class="notification-badge" onclick="document.getElementById('risksPanel').scrollIntoView({ behavior: 'smooth' })">
+            <i class="fas fa-bell fa-lg" style="color: var(--accent);"></i>
+            <span class="badge" id="notificationCount" style="display: none;">0</span>
+        </div>
+    </div>
+    
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+        <h2><i class="fas fa-calendar-alt" style="color: var(--accent);"></i> Календарный график работ</h2>
+        <div class="d-flex gap-2">
+            <button class="btn btn-outline-premium" onclick="exportToExcel()">
+                <i class="fas fa-file-excel"></i> Экспорт
+            </button>
+            <button class="btn btn-premium" onclick="importExcel()">
+                <i class="fas fa-upload"></i> Импорт
+            </button>
+            <button class="btn btn-premium" onclick="openAddModal()">
+                <i class="fas fa-plus"></i> Добавить
+            </button>
+        </div>
+    </div>
+    
+    <!-- Статистика -->
+    <div class="row g-2 g-md-3 mb-4">
+        <div class="col-6 col-md-3">
+            <div class="stats-card">
+                <div class="stats-number" id="totalTasks">0</div>
+                <div class="text-muted small">Всего задач</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="stats-card">
+                <div class="stats-number" id="completedTasks">0</div>
+                <div class="text-muted small">Завершено</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="stats-card">
+                <div class="stats-number" id="delayedTasks">0</div>
+                <div class="text-muted small">С задержкой</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="stats-card">
+                <div class="stats-number" id="overallProgress">0%</div>
+                <div class="text-muted small">Общий прогресс</div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Панель рисков -->
+    <div class="card mb-4" id="risksPanel">
+        <div class="card-header" style="background: linear-gradient(135deg, var(--primary), var(--primary-dark)); color: white;">
+            <h5 class="mb-0"><i class="fas fa-exclamation-triangle"></i> Анализ рисков</h5>
+        </div>
+        <div class="card-body" id="risksContent">
+            <div class="text-center py-3 text-muted">Загрузка...</div>
+        </div>
+    </div>
+    
+    <!-- Диаграмма Ганта -->
+    <div class="card mb-4">
+        <div class="card-header" style="background: linear-gradient(135deg, var(--primary), var(--primary-dark)); color: white;">
+            <h5 class="mb-0"><i class="fas fa-chart-gantt"></i> Диаграмма Ганта</h5>
+        </div>
+        <div class="card-body">
+            <div id="ganttChart" class="gantt-chart">
+                <div class="text-center py-3 text-muted">Загрузка...</div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Календарь -->
+    <div class="card">
+        <div class="card-header" style="background: linear-gradient(135deg, var(--primary), var(--primary-dark)); color: white;">
+            <h5 class="mb-0"><i class="fas fa-calendar"></i> Календарь задач</h5>
+        </div>
+        <div class="card-body p-0">
+            <div id="calendar"></div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/locales/ru.js"></script>
+
+<script>
+let calendar;
+let currentTasks = [];
+
+function goBack() {
+    if (document.referrer && document.referrer !== window.location.href) {
+        window.history.back();
+    } else {
+        window.location.href = "{{ url_for('index') }}";
+    }
+}
+
+function importExcel() {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.xlsx, .xls';
+    input.onchange = function(e) {
+        const file = e.target.files[0];
+        if (file) {
+            const formData = new FormData();
+            formData.append('file', file);
+            fetch(`/api/schedule/import/{{ site.id }}`, {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert(`✅ Импортировано ${data.count} задач`);
+                    loadAllData();
+                } else {
+                    alert('❌ Ошибка при импорте');
+                }
+            });
+        }
+    };
+    input.click();
+}
+
+function openAddModal() {
+    const taskName = prompt('Введите название задачи:');
+    if (!taskName) return;
+    const startDate = prompt('Дата начала (ГГГГ-ММ-ДД):', new Date().toISOString().slice(0,10));
+    const endDate = prompt('Дата окончания (ГГГГ-ММ-ДД):', new Date().toISOString().slice(0,10));
+    
+    fetch('/api/schedule/add', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            site_id: {{ site.id }},
+            task_name: taskName,
+            start_date: startDate,
+            end_date: endDate,
+            status: 'plan',
+            progress: 0
+        })
+    }).then(() => loadAllData());
+}
+
+function openEditModal(taskId) {
+    const task = currentTasks.find(t => t.id === taskId);
+    if (!task) return;
+    const newName = prompt('Название задачи:', task.task_name);
+    if (!newName) return;
+    const newStart = prompt('Дата начала (ГГГГ-ММ-ДД):', task.start_date);
+    const newEnd = prompt('Дата окончания (ГГГГ-ММ-ДД):', task.end_date);
+    const newProgress = prompt('Прогресс (0-100):', task.progress);
+    
+    fetch(`/api/schedule/update/${taskId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            task_name: newName,
+            start_date: newStart,
+            end_date: newEnd,
+            progress: parseInt(newProgress) || 0
+        })
+    }).then(() => loadAllData());
+}
+
+function deleteTask() {
+    const taskId = prompt('Введите ID задачи для удаления:');
+    if (!taskId) return;
+    if (confirm('Удалить задачу?')) {
+        fetch(`/api/schedule/delete/${taskId}`, { method: 'DELETE' })
+            .then(() => loadAllData());
+    }
+}
+
+function loadAllData() {
+    loadTasks();
+    loadAnalysis();
+}
+
+function loadTasks() {
+    fetch(`/api/schedule/{{ site.id }}`)
+        .then(response => response.json())
+        .then(tasks => {
+            currentTasks = tasks;
+            renderCalendar(tasks);
+            renderGantt(tasks);
+            updateStats(tasks);
+        });
+}
+
+function loadAnalysis() {
+    fetch(`/api/schedule/analyze/{{ site.id }}`)
+        .then(response => response.json())
+        .then(data => {
+            renderRisks(data);
+            const count = (data.risks?.length || 0) + (data.warnings?.length || 0) + (data.notifications?.length || 0);
+            const badge = document.getElementById('notificationCount');
+            if (count > 0) {
+                badge.innerText = count;
+                badge.style.display = 'inline-block';
+            } else {
+                badge.style.display = 'none';
+            }
+        });
+}
+
+function renderCalendar(tasks) {
+    const events = tasks.map(task => ({
+        id: task.id,
+        title: task.task_name,
+        start: task.start_date,
+        end: task.end_date,
+        backgroundColor: task.status === 'completed' ? '#22c55e' : (task.status === 'active' ? '#3b82f6' : '#94a3b8'),
+        borderColor: task.status === 'completed' ? '#22c55e' : (task.status === 'active' ? '#3b82f6' : '#94a3b8')
+    }));
+    
+    const calendarEl = document.getElementById('calendar');
+    if (calendar) calendar.destroy();
+    calendar = new FullCalendar.Calendar(calendarEl, {
+        locale: 'ru',
+        initialView: 'dayGridMonth',
+        headerToolbar: { left: 'prev,next today', center: 'title', right: 'dayGridMonth,timeGridWeek' },
+        events: events,
+        eventClick: function(info) { openEditModal(info.event.id); },
+        height: 'auto'
+    });
+    calendar.render();
+}
+
+function renderGantt(tasks) {
+    const activeTasks = tasks.filter(t => t.start_date && t.end_date);
+    if (!activeTasks.length) {
+        document.getElementById('ganttChart').innerHTML = '<div class="text-center py-3 text-muted">Нет задач</div>';
+        return;
+    }
+    
+    const startDates = activeTasks.map(t => new Date(t.start_date));
+    const endDates = activeTasks.map(t => new Date(t.end_date));
+    const minDate = new Date(Math.min(...startDates));
+    const maxDate = new Date(Math.max(...endDates));
+    const totalDays = Math.max(30, Math.ceil((maxDate - minDate) / 86400000));
+    
+    let html = '<div style="min-width: 700px;">';
+    html += '<div class="gantt-row" style="font-weight: 600; color: var(--accent);">';
+    html += '<div class="gantt-label">Задача</div>';
+    html += '<div class="gantt-bar-container"></div></div>';
+    
+    activeTasks.forEach(task => {
+        const start = new Date(task.start_date);
+        const end = new Date(task.end_date);
+        const startOffset = Math.max(0, (start - minDate) / 86400000);
+        const width = ((end - start) / 86400000 + 1) / totalDays * 100;
+        
+        let statusClass = 'status-plan';
+        if (task.status === 'active') statusClass = 'status-active';
+        else if (task.status === 'completed') statusClass = 'status-completed';
+        else if (task.status === 'delayed') statusClass = 'status-delayed';
+        
+        html += `<div class="gantt-row">`;
+        html += `<div class="gantt-label" title="${task.task_name}">${task.task_name.substring(0, 35)}${task.task_name.length > 35 ? '...' : ''}</div>`;
+        html += `<div class="gantt-bar-container">`;
+        html += `<div class="gantt-bar ${statusClass}" style="left: ${(startOffset / totalDays) * 100}%; width: ${Math.max(width, 2)}%;" onclick="openEditModal(${task.id})">${task.progress}%</div>`;
+        html += `</div></div>`;
+    });
+    html += '</div>';
+    document.getElementById('ganttChart').innerHTML = html;
+}
+
+function renderRisks(data) {
+    const container = document.getElementById('risksContent');
+    let html = '';
+    if (data.risks?.length) {
+        html += '<h6>🔴 Критические риски</h6>';
+        data.risks.forEach(risk => { html += `<div class="risk-card risk-danger">⚠️ ${risk.message}</div>`; });
+    }
+    if (data.warnings?.length) {
+        html += '<h6 class="mt-3">🟡 Предупреждения</h6>';
+        data.warnings.forEach(warning => { html += `<div class="risk-card risk-warning">${warning.message}</div>`; });
+    }
+    if (data.notifications?.length) {
+        html += '<h6 class="mt-3">🔔 Уведомления</h6>';
+        data.notifications.forEach(notif => { html += `<div class="risk-card risk-info">${notif.message}</div>`; });
+    }
+    if (!html) html = '<div class="text-center py-3" style="color: #22c55e;">✅ Все работы идут по плану</div>';
+    container.innerHTML = html;
+}
+
+function updateStats(tasks) {
+    const completed = tasks.filter(t => t.progress >= 100).length;
+    const delayed = tasks.filter(t => t.status === 'delayed').length;
+    const totalProgress = tasks.length ? Math.round(tasks.reduce((sum, t) => sum + t.progress, 0) / tasks.length) : 0;
+    document.getElementById('totalTasks').innerText = tasks.length;
+    document.getElementById('completedTasks').innerText = completed;
+    document.getElementById('delayedTasks').innerText = delayed;
+    document.getElementById('overallProgress').innerText = totalProgress + '%';
+}
+
+function exportToExcel() {
+    window.location.href = `/api/schedule/export/{{ site.id }}`;
+}
+
+loadAllData();
+</script>
+{% endblock %}

@@ -1,0 +1,491 @@
+{% extends "base.html" %}
+
+{% block title %}Фотографии - {{ site.name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .drop-zone {
+        border: 2px dashed #ccc;
+        border-radius: 20px;
+        padding: 40px;
+        text-align: center;
+        background: #f8f9fa;
+        cursor: pointer;
+        transition: all 0.3s;
+        margin-bottom: 20px;
+    }
+    .drop-zone.drag-over {
+        border-color: #28a745;
+        background: #e8f5e9;
+    }
+    .photo-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 20px;
+    }
+    .photo-card {
+        background: white;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        transition: transform 0.2s;
+    }
+    .photo-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 5px 20px rgba(0,0,0,0.15);
+    }
+    .photo-card img {
+        width: 100%;
+        height: 220px;
+        object-fit: cover;
+        cursor: pointer;
+    }
+    .upload-progress {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        width: 320px;
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+        z-index: 1000;
+        display: none;
+    }
+    .upload-progress.show {
+        display: block;
+        animation: slideUp 0.3s ease;
+    }
+    @keyframes slideUp {
+        from { transform: translateY(100%); opacity: 0; }
+        to { transform: translateY(0); opacity: 1; }
+    }
+    .progress-bar-custom {
+        height: 4px;
+        background: linear-gradient(90deg, #28a745, #20c997);
+        width: 0%;
+        transition: width 0.3s;
+        border-radius: 2px;
+    }
+    .btn-mass-upload {
+        background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+        border: none;
+        margin-right: 10px;
+    }
+    .btn-mass-upload:hover {
+        background: linear-gradient(135deg, #218838 0%, #1aa179 100%);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('index') }}">Главная</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('site_detail', site_id=site.id) }}">{{ site.name }}</a></li>
+            <li class="breadcrumb-item active">Фотографии</li>
+        </ol>
+    </nav>
+</div>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="fas fa-camera"></i> Фотоматериалы</h2>
+    <div>
+        <button type="button" class="btn btn-mass-upload" data-bs-toggle="modal" data-bs-target="#massUploadModal">
+            <i class="fas fa-upload"></i> Массовая загрузка
+        </button>
+        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addPhotoModal">
+            <i class="fas fa-plus"></i> Добавить фото
+        </button>
+    </div>
+</div>
+
+<!-- Зона для Drag & Drop -->
+<div class="drop-zone" id="dropZone">
+    <i class="fas fa-cloud-upload-alt fa-3x text-muted mb-3"></i>
+    <h5>Перетащите фотографии сюда</h5>
+    <p class="text-muted">или нажмите для выбора файлов</p>
+    <input type="file" id="fileInput" multiple accept="image/*" style="display: none;">
+    <button class="btn btn-outline-primary" onclick="document.getElementById('fileInput').click()">
+        <i class="fas fa-folder-open"></i> Выбрать файлы
+    </button>
+</div>
+
+<!-- Прогресс загрузки -->
+<div class="upload-progress" id="uploadProgress">
+    <div class="p-3">
+        <div class="d-flex justify-content-between mb-2">
+            <span><i class="fas fa-spinner fa-spin"></i> Загрузка фотографий</span>
+            <span id="progressPercent">0%</span>
+        </div>
+        <div class="progress-bar-custom" id="progressBar"></div>
+        <div class="small text-muted mt-2" id="progressStatus">Подготовка...</div>
+    </div>
+</div>
+
+<!-- Галерея фото -->
+{% if photos %}
+<div class="photo-grid">
+    {% for photo in photos %}
+    <div class="photo-card" data-photo-id="{{ photo.id }}">
+        {% set filename = photo.photo_path.split('/')[-1] if '/' in photo.photo_path else photo.photo_path.split('\\')[-1] %}
+        <img src="{{ url_for('uploaded_file', filename=filename) }}" 
+             alt="Фото"
+             onclick="showPhotoModal('{{ url_for('uploaded_file', filename=filename) }}', {{ photo.description|tojson|safe }})">
+        <div class="p-3">
+            <p class="small text-muted mb-1">
+                <i class="fas fa-calendar"></i> {{ photo.timestamp[:10] if photo.timestamp else 'Дата не указана' }}
+                {% if photo.latitude and photo.latitude != 0 %}
+                • <i class="fas fa-map-marker-alt"></i> {{ "%.6f"|format(photo.latitude) }}, {{ "%.6f"|format(photo.longitude) }}
+                {% endif %}
+            </p>
+            <p class="small mb-2">{% set desc = photo.description or '' %}{{ desc[:80] }}{% if desc|length > 80 %}...{% endif %}</p>
+            <div class="d-flex justify-content-between align-items-center">
+                <span class="badge bg-secondary">{{ photo.document_section or 'Без раздела' }}</span>
+                <button class="btn btn-sm btn-danger" onclick="deletePhoto({{ photo.id }})">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="text-center py-5 bg-white rounded">
+    <i class="fas fa-images fa-4x text-muted mb-3"></i>
+    <h4>Нет фотографий</h4>
+    <p class="text-muted">Загрузите фотографии через форму выше или перетащите их в зону загрузки</p>
+</div>
+{% endif %}
+
+<!-- Modal одиночного фото -->
+<div class="modal fade" id="addPhotoModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title"><i class="fas fa-camera"></i> Добавить фотографию</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">Фотография</label>
+                    <input type="file" id="singlePhotoFile" class="form-control" accept="image/*" capture="environment">
+                    <div class="mt-2" id="photoPreview"></div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Описание</label>
+                    <textarea id="photoDescription" class="form-control" rows="2" placeholder="Опишите что изображено на фото..."></textarea>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Раздел</label>
+                    <select id="photoSection" class="form-select">
+                        <option value="">Без раздела</option>
+                        <option value="foundation">Фундамент</option>
+                        <option value="walls">Стены</option>
+                        <option value="roof">Кровля</option>
+                        <option value="facade">Фасад</option>
+                        <option value="interior">Интерьер</option>
+                        <option value="engineering">Инженерные системы</option>
+                    </select>
+                </div>
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle"></i> При добавлении фото с мобильного устройства будет автоматически сохранена геолокация (если разрешено).
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                <button type="button" class="btn btn-primary" onclick="uploadSinglePhoto()">Загрузить</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal массовой загрузки -->
+<div class="modal fade" id="massUploadModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title"><i class="fas fa-upload"></i> Массовая загрузка фотографий</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">Выберите фотографии</label>
+                    <input type="file" id="massFileInput" class="form-control" multiple accept="image/*">
+                    <small class="text-muted">Можно выбрать несколько файлов одновременно</small>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Общее описание (для всех фото)</label>
+                    <textarea id="massDescription" class="form-control" rows="2" placeholder="Например: Ход строительства, этап 1..."></textarea>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Раздел</label>
+                    <select id="massSection" class="form-select">
+                        <option value="">Без раздела</option>
+                        <option value="foundation">Фундамент</option>
+                        <option value="walls">Стены</option>
+                        <option value="roof">Кровля</option>
+                        <option value="facade">Фасад</option>
+                        <option value="interior">Интерьер</option>
+                        <option value="engineering">Инженерные системы</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                <button type="button" class="btn btn-success" onclick="massUploadPhotos()">
+                    <i class="fas fa-cloud-upload-alt"></i> Загрузить все
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal просмотра фото -->
+<div class="modal fade" id="photoViewModal" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-body text-center p-0">
+                <img id="viewPhotoImg" src="" class="img-fluid" style="max-height: 80vh; width: auto;">
+                <p id="viewPhotoDesc" class="p-3 mb-0 bg-light"></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Drag & Drop зона
+const dropZone = document.getElementById('dropZone');
+const fileInput = document.getElementById('fileInput');
+
+if (dropZone) {
+    dropZone.addEventListener('click', () => fileInput && fileInput.click());
+    dropZone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        dropZone.classList.add('drag-over');
+    });
+    dropZone.addEventListener('dragleave', () => {
+        dropZone.classList.remove('drag-over');
+    });
+    dropZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropZone.classList.remove('drag-over');
+        const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/'));
+        if (files.length > 0) {
+            uploadMultiplePhotos(files);
+        }
+    });
+}
+
+if (fileInput) {
+    fileInput.addEventListener('change', (e) => {
+        const files = Array.from(e.target.files);
+        if (files.length > 0) {
+            uploadMultiplePhotos(files);
+        }
+        fileInput.value = '';
+    });
+}
+
+// Массовая загрузка из модального окна
+function massUploadPhotos() {
+    const massFileInput = document.getElementById('massFileInput');
+    if (!massFileInput) return;
+    
+    const files = massFileInput.files;
+    if (files.length === 0) {
+        alert('Выберите фотографии');
+        return;
+    }
+    
+    const description = document.getElementById('massDescription')?.value || '';
+    const section = document.getElementById('massSection')?.value || '';
+    
+    uploadMultiplePhotos(Array.from(files), description, section);
+    
+    const modal = bootstrap.Modal.getInstance(document.getElementById('massUploadModal'));
+    if (modal) modal.hide();
+    
+    // Очищаем поля
+    massFileInput.value = '';
+    if (document.getElementById('massDescription')) document.getElementById('massDescription').value = '';
+}
+
+// Загрузка нескольких фото
+function uploadMultiplePhotos(files, commonDescription = '', commonSection = '') {
+    if (!files || files.length === 0) return;
+    
+    const progressDiv = document.getElementById('uploadProgress');
+    const progressBar = document.getElementById('progressBar');
+    const progressPercent = document.getElementById('progressPercent');
+    const progressStatus = document.getElementById('progressStatus');
+    
+    if (!progressDiv) return;
+    progressDiv.classList.add('show');
+    let completed = 0;
+    
+    // Получаем геолокацию один раз для всех фото
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(function(position) {
+            uploadNext(files, 0, commonDescription, commonSection, completed, progressBar, progressPercent, progressStatus, progressDiv, position.coords.latitude, position.coords.longitude);
+        }, function() {
+            uploadNext(files, 0, commonDescription, commonSection, completed, progressBar, progressPercent, progressStatus, progressDiv, 0, 0);
+        });
+    } else {
+        uploadNext(files, 0, commonDescription, commonSection, completed, progressBar, progressPercent, progressStatus, progressDiv, 0, 0);
+    }
+}
+
+function uploadNext(files, index, commonDescription, commonSection, completed, progressBar, progressPercent, progressStatus, progressDiv, latitude, longitude) {
+    if (index >= files.length) {
+        setTimeout(() => {
+            if (progressDiv) progressDiv.classList.remove('show');
+            location.reload();
+        }, 1000);
+        return;
+    }
+    
+    const file = files[index];
+    const reader = new FileReader();
+    
+    reader.onload = function(e) {
+        const photoData = e.target.result;
+        const description = commonDescription || `Фото ${index + 1}`;
+        const section = commonSection || '';
+        
+        fetch('/photo/add', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                photo: photoData,
+                site_id: {{ site.id }},
+                description: description,
+                section: section,
+                latitude: latitude,
+                longitude: longitude
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            completed++;
+            const percent = (completed / files.length) * 100;
+            if (progressBar) progressBar.style.width = percent + '%';
+            if (progressPercent) progressPercent.innerText = Math.round(percent) + '%';
+            if (progressStatus) progressStatus.innerText = `Загружено ${completed} из ${files.length}: ${file.name}`;
+            
+            uploadNext(files, index + 1, commonDescription, commonSection, completed, progressBar, progressPercent, progressStatus, progressDiv, latitude, longitude);
+        })
+        .catch(error => {
+            console.error('Ошибка загрузки:', error);
+            if (progressStatus) progressStatus.innerText = `Ошибка: ${file.name}`;
+            uploadNext(files, index + 1, commonDescription, commonSection, completed, progressBar, progressPercent, progressStatus, progressDiv, latitude, longitude);
+        });
+    };
+    
+    reader.readAsDataURL(file);
+}
+
+// Одиночная загрузка
+function uploadSinglePhoto() {
+    const fileInput = document.getElementById('singlePhotoFile');
+    if (!fileInput) return;
+    
+    const file = fileInput.files[0];
+    
+    if (!file) {
+        alert('Выберите фотографию');
+        return;
+    }
+    
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const photoData = e.target.result;
+        const description = document.getElementById('photoDescription')?.value || '';
+        const section = document.getElementById('photoSection')?.value || '';
+        
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(function(position) {
+                sendPhoto(photoData, description, section, position.coords.latitude, position.coords.longitude);
+            }, function() {
+                sendPhoto(photoData, description, section, 0, 0);
+            });
+        } else {
+            sendPhoto(photoData, description, section, 0, 0);
+        }
+    };
+    reader.readAsDataURL(file);
+}
+
+function sendPhoto(photoData, description, section, latitude, longitude) {
+    fetch('/photo/add', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+            photo: photoData,
+            site_id: {{ site.id }},
+            description: description,
+            section: section,
+            latitude: latitude,
+            longitude: longitude
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('Ошибка: ' + (data.error || 'Неизвестная ошибка'));
+        }
+    })
+    .catch(error => {
+        alert('Ошибка загрузки: ' + error);
+    });
+}
+
+function showPhotoModal(imgSrc, description) {
+    const img = document.getElementById('viewPhotoImg');
+    const descElem = document.getElementById('viewPhotoDesc');
+    if (img) img.src = imgSrc;
+    if (descElem) {
+        descElem.textContent = description || 'Без описания';
+    }
+    const modalElement = document.getElementById('photoViewModal');
+    if (modalElement) {
+        const modal = new bootstrap.Modal(modalElement);
+        modal.show();
+    }
+}
+
+function deletePhoto(photoId) {
+    if (confirm('Удалить фотографию?')) {
+        window.location.href = `/photo/delete/${photoId}`;
+    }
+}
+
+// Предпросмотр фото
+const singlePhotoFile = document.getElementById('singlePhotoFile');
+if (singlePhotoFile) {
+    singlePhotoFile.addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const preview = document.getElementById('photoPreview');
+                if (preview) {
+                    preview.innerHTML = '';
+                    const img = document.createElement('img');
+                    img.src = e.target.result;
+                    img.className = 'img-fluid rounded';
+                    img.style.maxHeight = '150px';
+                    preview.appendChild(img);
+                }
+            };
+            reader.readAsDataURL(file);
+        }
+    });
+}
+</script>
+{% endblock %}

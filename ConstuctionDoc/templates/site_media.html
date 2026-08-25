@@ -1,0 +1,144 @@
+{% extends "base.html" %}
+
+{% block title %}Фото и видео - {{ site.name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .back-button {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        background: var(--bg-card);
+        color: var(--text-primary);
+        padding: 10px 20px;
+        border-radius: 40px;
+        text-decoration: none;
+        font-size: 0.9rem;
+        border: 1px solid var(--border);
+        transition: all 0.3s;
+        cursor: pointer;
+    }
+    
+    .back-button:hover {
+        transform: translateX(-5px);
+        border-color: var(--accent);
+    }
+    
+    .btn-outline-danger-custom {
+        background: rgba(197, 48, 48, 0.12);
+        color: var(--danger);
+        border: none;
+        width: 100%;
+        padding: 8px;
+        border-radius: 8px;
+        transition: all 0.2s;
+    }
+    
+    .btn-outline-danger-custom:hover {
+        background: var(--danger);
+        color: white;
+    }
+    
+    .media-card {
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+    
+    .media-card:hover {
+        transform: translateY(-4px);
+        box-shadow: var(--shadow-lg);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <a href="javascript:void(0);" onclick="goBack()" class="back-button">
+            <i class="fas fa-arrow-left"></i> Назад
+        </a>
+        <div class="d-flex gap-2">
+            <button class="btn btn-premium" onclick="alert('Функция загрузки фото в разработке')">
+                <i class="fas fa-camera"></i> Добавить фото
+            </button>
+            <button class="btn btn-premium" onclick="alert('Функция загрузки видео в разработке')">
+                <i class="fas fa-video"></i> Добавить видео
+            </button>
+        </div>
+    </div>
+    
+    <h2><i class="fas fa-camera" style="color: var(--accent);"></i> Фото и видеофиксация</h2>
+    
+    <div id="mediaList" class="mt-4">
+        <div class="text-center py-5 text-muted">
+            <i class="fas fa-spinner fa-spin fa-2x mb-3"></i>
+            <p>Загрузка медиафайлов...</p>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Функция умного возврата
+    function goBack() {
+        if (document.referrer && document.referrer !== window.location.href) {
+            window.history.back();
+        } else {
+            window.location.href = "{{ url_for('index') }}";
+        }
+    }
+    
+    function escapeHtml(text) {
+        if (!text) return '';
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+    
+    function loadMedia() {
+        fetch(`/api/media/{{ site.id }}`)
+            .then(response => response.json())
+            .then(data => {
+                const container = document.getElementById('mediaList');
+                if (data.length === 0) {
+                    container.innerHTML = `<div class="text-center py-5 text-muted"><i class="fas fa-camera fa-3x mb-3"></i><p>Нет фото и видео</p></div>`;
+                    return;
+                }
+                container.innerHTML = `<div class="row g-4">${data.map(media => `
+                    <div class="col-md-4 col-lg-3 mb-4">
+                        <div class="card h-100 media-card">
+                            ${media.media_type === 'photo' ? 
+                                `<img src="/uploads/media/${media.filename}" class="card-img-top" style="height: 200px; object-fit: cover; cursor: pointer;" onclick="window.open('/uploads/media/${media.filename}', '_blank')">` :
+                                `<video src="/uploads/media/${media.filename}" class="card-img-top" style="height: 200px; object-fit: cover;" controls></video>`
+                            }
+                            <div class="card-body">
+                                <h6 class="card-title">${escapeHtml(media.title)}</h6>
+                                <p class="small text-muted">${escapeHtml(media.description || '')}</p>
+                                <small class="text-muted"><i class="fas fa-calendar"></i> ${media.upload_date}</small>
+                            </div>
+                            <div class="card-footer bg-transparent">
+                                <button class="btn btn-sm btn-outline-danger-custom" onclick="deleteMedia(${media.id})"><i class="fas fa-trash"></i> Удалить</button>
+                            </div>
+                        </div>
+                    </div>
+                `).join('')}</div>`;
+            })
+            .catch(error => console.error('Ошибка загрузки медиа:', error));
+    }
+    
+    function deleteMedia(mediaId) {
+        if (confirm('🗑️ Удалить медиафайл? Действие необратимо.')) {
+            fetch(`/delete-media/${mediaId}`, { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        loadMedia();
+                    } else {
+                        alert('Ошибка при удалении');
+                    }
+                })
+                .catch(error => console.error('Ошибка удаления:', error));
+        }
+    }
+    
+    loadMedia();
+</script>
+{% endblock %}

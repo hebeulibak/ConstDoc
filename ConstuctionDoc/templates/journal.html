@@ -1,0 +1,1560 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Журнал работ - {{ site.name }}</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        :root {
+            --primary: #1a3a3a;
+            --primary-dark: #0f2424;
+            --primary-light: #2a4a4a;
+            --accent: #d4a373;
+            --accent-dark: #b8834f;
+            --accent-light: #f5e6d3;
+            --success: #2d6a4f;
+            --success-dark: #1f543d;
+            --danger: #c53030;
+            --danger-dark: #9b2c2c;
+            --text-primary: #1e293b;
+            --text-secondary: #5b6e8c;
+            --text-muted: #94a3b8;
+            --border: #e2e8f0;
+            --border-light: #f0f4f8;
+            --bg-page: #f7f9fc;
+            --bg-card: #ffffff;
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.04);
+            --shadow-md: 0 4px 12px rgba(0,0,0,0.06);
+            --shadow-lg: 0 8px 24px rgba(0,0,0,0.1);
+            --shadow-xl: 0 20px 40px rgba(0,0,0,0.12);
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: var(--bg-page);
+            min-height: 100vh;
+            padding: 24px;
+            padding-bottom: 120px;
+            color: var(--text-primary);
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        /* Карточка объекта */
+        .site-card {
+            background: var(--bg-card);
+            border-radius: 20px;
+            padding: 28px 32px;
+            margin-bottom: 28px;
+            box-shadow: var(--shadow-md);
+            border: 1px solid var(--border);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .site-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--accent), var(--primary));
+        }
+        
+        .site-title {
+            font-size: 28px;
+            color: var(--primary);
+            margin-bottom: 8px;
+            font-weight: 600;
+            letter-spacing: -0.3px;
+        }
+        
+        .site-address {
+            color: var(--text-secondary);
+            font-size: 14px;
+            margin-bottom: 12px;
+        }
+        
+        .site-details {
+            display: flex;
+            gap: 24px;
+            flex-wrap: wrap;
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid var(--border-light);
+        }
+        
+        .site-detail {
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+        
+        .site-detail strong {
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+        
+        /* Статистика */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 20px;
+            margin-bottom: 28px;
+        }
+        
+        .stat-card {
+            background: var(--bg-card);
+            border-radius: 20px;
+            padding: 24px;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--border);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+        
+        .stat-card::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--accent), transparent);
+        }
+        
+        .stat-number {
+            font-size: 40px;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        
+        .stat-label {
+            color: var(--text-secondary);
+            margin-top: 8px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        
+        /* Панель поиска */
+        .search-panel {
+            background: var(--bg-card);
+            border-radius: 20px;
+            margin-bottom: 28px;
+            border: 1px solid var(--border);
+            overflow: hidden;
+            transition: all 0.3s;
+        }
+        
+        .search-header {
+            padding: 16px 24px;
+            background: var(--bg-card);
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            user-select: none;
+            transition: background 0.2s;
+        }
+        
+        .search-header:hover {
+            background: var(--bg-page);
+        }
+        
+        .search-header h3 {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: var(--text-secondary);
+            font-size: 14px;
+            font-weight: 600;
+            letter-spacing: 0.3px;
+        }
+        
+        .toggle-icon {
+            font-size: 12px;
+            color: var(--text-muted);
+            transition: transform 0.3s;
+        }
+        
+        .search-header.collapsed .toggle-icon {
+            transform: rotate(-90deg);
+        }
+        
+        .search-body {
+            padding: 0 24px 24px 24px;
+            display: none;
+            border-top: 1px solid var(--border);
+        }
+        
+        .search-body.active {
+            display: block;
+        }
+        
+        .smart-search {
+            position: relative;
+            margin-top: 20px;
+        }
+        
+        .smart-search input {
+            width: 100%;
+            padding: 14px 18px;
+            border: 2px solid var(--border);
+            border-radius: 14px;
+            font-size: 14px;
+            transition: all 0.2s;
+            background: var(--bg-card);
+        }
+        
+        .smart-search input:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(212, 163, 115, 0.1);
+        }
+        
+        .search-suggestions {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            max-height: 250px;
+            overflow-y: auto;
+            z-index: 100;
+            display: none;
+            box-shadow: var(--shadow-lg);
+            margin-top: 4px;
+        }
+        
+        .search-suggestions.active {
+            display: block;
+        }
+        
+        .suggestion-item {
+            padding: 12px 18px;
+            cursor: pointer;
+            border-bottom: 1px solid var(--border-light);
+            font-size: 14px;
+            transition: background 0.2s;
+        }
+        
+        .suggestion-item:hover {
+            background: var(--bg-page);
+        }
+        
+        .advanced-filters {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border);
+        }
+        
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .filter-group label {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-bottom: 6px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .filter-group input, .filter-group select {
+            padding: 10px 14px;
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            font-size: 13px;
+            background: var(--bg-card);
+            transition: all 0.2s;
+        }
+        
+        .filter-group input:focus, .filter-group select:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+        
+        .filter-buttons {
+            display: flex;
+            gap: 12px;
+            align-items: flex-end;
+        }
+        
+        .btn-filter, .btn-reset {
+            padding: 10px 24px;
+            border-radius: 12px;
+            cursor: pointer;
+            border: none;
+            font-weight: 600;
+            font-size: 13px;
+            transition: all 0.2s;
+        }
+        
+        .btn-filter {
+            background: var(--primary);
+            color: white;
+        }
+        
+        .btn-filter:hover {
+            background: var(--primary-dark);
+            transform: translateY(-1px);
+        }
+        
+        .btn-reset {
+            background: var(--bg-page);
+            color: var(--text-secondary);
+            text-decoration: none;
+            display: inline-block;
+            text-align: center;
+            border: 2px solid var(--border);
+        }
+        
+        .btn-reset:hover {
+            background: var(--border);
+        }
+        
+        /* Таблица записей */
+        .entries-table {
+            background: var(--bg-card);
+            border-radius: 20px;
+            overflow-x: auto;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--border);
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 700px;
+        }
+        
+        th {
+            background: var(--bg-page);
+            padding: 16px 20px;
+            text-align: left;
+            font-weight: 600;
+            color: var(--text-primary);
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 2px solid var(--border);
+        }
+        
+        td {
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border-light);
+            font-size: 14px;
+            color: var(--text-primary);
+        }
+        
+        tr:hover {
+            background: var(--bg-page);
+        }
+        
+        .work-type-badge {
+            background: linear-gradient(135deg, var(--accent-light), #fff);
+            color: var(--accent-dark);
+            padding: 4px 14px;
+            border-radius: 20px;
+            font-size: 12px;
+            display: inline-block;
+            font-weight: 600;
+            border: 1px solid var(--accent);
+        }
+        
+        .actions {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        
+        .btn-edit {
+            background: rgba(45, 106, 79, 0.12);
+            color: var(--success);
+            border: none;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+        }
+        
+        .btn-edit:hover {
+            background: var(--success);
+            color: white;
+            transform: scale(1.08);
+            box-shadow: 0 4px 12px rgba(45, 106, 79, 0.3);
+        }
+        
+        .btn-edit:active {
+            transform: scale(0.95);
+        }
+        
+        .btn-delete {
+            background: rgba(197, 48, 48, 0.12);
+            color: var(--danger);
+            border: none;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+        }
+        
+        .btn-delete:hover {
+            background: var(--danger);
+            color: white;
+            transform: scale(1.08);
+            box-shadow: 0 4px 12px rgba(197, 48, 48, 0.3);
+        }
+        
+        .btn-delete:active {
+            transform: scale(0.95);
+        }
+        
+        /* Модальное окно */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.6);
+            backdrop-filter: blur(4px);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .modal.active {
+            display: flex;
+        }
+        
+        .modal-content {
+            background: var(--bg-card);
+            border-radius: 28px;
+            width: 90%;
+            max-width: 800px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: var(--shadow-xl);
+        }
+        
+        .modal-header {
+            padding: 24px 28px;
+            border-bottom: 2px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            background: var(--bg-card);
+            z-index: 10;
+            border-radius: 28px 28px 0 0;
+        }
+        
+        .modal-header h2 {
+            color: var(--primary);
+            font-size: 22px;
+            font-weight: 600;
+        }
+        
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 32px;
+            cursor: pointer;
+            color: var(--text-muted);
+            transition: all 0.2s;
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 12px;
+        }
+        
+        .modal-close:hover {
+            background: var(--danger);
+            color: white;
+        }
+        
+        .modal-body {
+            padding: 28px;
+        }
+        
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+        }
+        
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .form-group.full-width {
+            grid-column: span 2;
+        }
+        
+        .form-group label {
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: var(--text-primary);
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+        
+        .form-group label .required {
+            color: var(--danger);
+        }
+        
+        .form-group input, 
+        .form-group select, 
+        .form-group textarea {
+            padding: 12px 16px;
+            border: 2px solid var(--border);
+            border-radius: 14px;
+            font-size: 14px;
+            font-family: inherit;
+            transition: all 0.2s;
+            background: var(--bg-card);
+        }
+        
+        .form-group input:focus, 
+        .form-group select:focus, 
+        .form-group textarea:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(212, 163, 115, 0.1);
+        }
+        
+        .form-group textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+        
+        .work-type-combobox {
+            position: relative;
+        }
+        
+        .work-type-input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid var(--border);
+            border-radius: 14px;
+            font-size: 14px;
+        }
+        
+        .work-type-dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            max-height: 250px;
+            overflow-y: auto;
+            z-index: 100;
+            display: none;
+            box-shadow: var(--shadow-lg);
+            margin-top: 4px;
+        }
+        
+        .work-type-dropdown.active {
+            display: block;
+        }
+        
+        .work-type-option {
+            padding: 12px 16px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.2s;
+        }
+        
+        .work-type-option:hover {
+            background: var(--bg-page);
+        }
+        
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+        
+        .modal-footer {
+            padding: 20px 28px;
+            border-top: 2px solid var(--border);
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+            position: sticky;
+            bottom: 0;
+            background: var(--bg-card);
+            border-radius: 0 0 28px 28px;
+        }
+        
+        .btn-submit {
+            background: linear-gradient(135deg, var(--primary), var(--primary-light));
+            color: white;
+            border: none;
+            padding: 12px 32px;
+            border-radius: 14px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+        
+        .btn-submit:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+        
+        .btn-cancel {
+            background: var(--bg-page);
+            color: var(--text-secondary);
+            border: 2px solid var(--border);
+            padding: 12px 32px;
+            border-radius: 14px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+        
+        .btn-cancel:hover {
+            background: var(--border);
+        }
+        
+        .helper-text {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-top: 6px;
+        }
+        
+        /* Flash сообщения */
+        .flash-message {
+            position: fixed;
+            top: 24px;
+            right: 24px;
+            padding: 14px 24px;
+            border-radius: 14px;
+            color: white;
+            z-index: 3000;
+            animation: slideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            font-size: 14px;
+            font-weight: 500;
+            box-shadow: var(--shadow-lg);
+        }
+        
+        .flash-success { background: var(--success); }
+        .flash-danger { background: var(--danger); }
+        
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+        
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 24px;
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s;
+            padding: 8px 16px;
+            background: var(--bg-card);
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            cursor: pointer;
+        }
+        
+        .back-link:hover {
+            color: var(--accent);
+            transform: translateX(-4px);
+        }
+        
+        .no-results {
+            text-align: center;
+            padding: 60px;
+            color: var(--text-muted);
+            font-size: 16px;
+        }
+        
+        /* Адаптивность */
+        @media (max-width: 768px) {
+            body {
+                padding: 16px;
+                padding-bottom: 100px;
+            }
+            
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .form-group.full-width {
+                grid-column: span 1;
+            }
+            
+            .btn-add-entry {
+                padding: 14px 28px;
+                font-size: 15px;
+            }
+            
+            .site-card {
+                padding: 20px;
+            }
+            
+            .site-title {
+                font-size: 22px;
+            }
+        }
+        
+        /* Стили пагинации */
+        .pagination {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            margin-top: 24px;
+            flex-wrap: wrap;
+        }
+        
+        .page-link {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 40px;
+            height: 40px;
+            padding: 0 12px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            color: var(--text-primary);
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        
+        .page-link:hover {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+        
+        .page-link.active {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Кнопка назад - УМНАЯ -->
+        <a href="javascript:void(0);" onclick="goBack()" class="back-link">← Назад</a>
+        
+        <!-- Карточка объекта -->
+        <div class="site-card">
+            <h1 class="site-title">{{ site.name }}</h1>
+            <p class="site-address">{{ site.address }}</p>
+            <div class="site-details">
+                <div class="site-detail"><strong>Заказчик:</strong> {{ site.customer }}</div>
+                <div class="site-detail"><strong>Подрядчик:</strong> {{ site.contractor }}</div>
+            </div>
+        </div>
+        
+        <!-- Статистика -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-number">{{ stats.total_entries }}</div>
+                <div class="stat-label">Всего записей</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">{{ stats.weekly_count }}</div>
+                <div class="stat-label">За последние 7 дней</div>
+            </div>
+        </div>
+        
+        <!-- Панель поиска -->
+        <div class="search-panel">
+            <div class="search-header" onclick="toggleSearch()">
+                <h3>
+                    <span>🔍</span> Поиск и фильтры
+                </h3>
+                <span class="toggle-icon">▼</span>
+            </div>
+            <div class="search-body" id="searchBody">
+                <div class="smart-search">
+                    <input type="text" id="smartSearchInput" placeholder="Введите текст для поиска..." autocomplete="off">
+                    <div class="search-suggestions" id="searchSuggestions"></div>
+                </div>
+                
+                <div class="advanced-filters">
+                    <div class="filter-group">
+                        <label>Дата с</label>
+                        <input type="date" id="dateFrom" value="{{ date_from }}">
+                    </div>
+                    <div class="filter-group">
+                        <label>Дата по</label>
+                        <input type="date" id="dateTo" value="{{ date_to }}">
+                    </div>
+                    <div class="filter-group">
+                        <label>Вид работ</label>
+                        <select id="workTypeFilter">
+                            <option value="">Все</option>
+                            {% for wt in all_work_types %}
+                            <option value="{{ wt }}" {% if selected_work_type == wt %}selected{% endif %}>{{ wt }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label>Ответственный</label>
+                        <select id="responsibleFilter">
+                            <option value="">Все</option>
+                            {% for resp in responsible_persons %}
+                            <option value="{{ resp }}" {% if selected_responsible == resp %}selected{% endif %}>{{ resp }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="filter-buttons">
+                        <button class="btn-filter" onclick="applyFilters()">Применить</button>
+                        <a href="{{ url_for('journal', site_id=site.id) }}" class="btn-reset">Сбросить</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Таблица записей -->
+        <div class="entries-table">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Дата</th>
+                        <th>Вид работ</th>
+                        <th>Описание</th>
+                        <th>Ответственный</th>
+                        <th>Объём</th>
+                        <th>Действия</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody">
+                    {% for entry in entries %}
+                    <tr id="row-{{ entry.id }}" data-search="{{ entry.work_description }} {{ entry.work_type }} {{ entry.responsible_person }} {{ entry.location }} {{ entry.notes }}">
+                        <td>{{ entry.date }}</td>
+                        <td><span class="work-type-badge">{{ entry.work_type }}</span></td>
+                        <td>{{ entry.work_description[:50] }}{% if entry.work_description|length > 50 %}...{% endif %}</td>
+                        <td>{{ entry.responsible_person }}</td>
+                        <td>{{ entry.volume }} {{ entry.volume_unit }}</td>
+                        <td class="actions">
+                            <button class="btn-edit" onclick="openEditModal({{ entry.id }})" title="Редактировать">
+                                <i class="fas fa-pencil-alt"></i>
+                            </button>
+                            <button class="btn-delete" onclick="deleteEntry({{ entry.id }})" title="Удалить">
+                                <i class="fas fa-trash-alt"></i>
+                            </button>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="6" class="no-results">📭 Нет записей</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Пагинация -->
+        {% if pagination.pages > 1 %}
+        <div class="pagination">
+            {% if pagination.has_prev %}
+                <a href="{{ url_for('journal', site_id=site.id, page=pagination.prev_num, **request.args) }}" class="page-link">←</a>
+            {% endif %}
+            
+            {% for page_num in pagination.iter_pages(left_edge=2, right_edge=2, left_current=2, right_current=2) %}
+                {% if page_num %}
+                    {% if page_num == pagination.page %}
+                        <span class="page-link active">{{ page_num }}</span>
+                    {% else %}
+                        <a href="{{ url_for('journal', site_id=site.id, page=page_num, **request.args) }}" class="page-link">{{ page_num }}</a>
+                    {% endif %}
+                {% else %}
+                    <span class="page-link">...</span>
+                {% endif %}
+            {% endfor %}
+            
+            {% if pagination.has_next %}
+                <a href="{{ url_for('journal', site_id=site.id, page=pagination.next_num, **request.args) }}" class="page-link">→</a>
+            {% endif %}
+        </div>
+        {% endif %}
+        
+        <!-- Кнопка добавления записи -->
+        <div style="display: flex; justify-content: center; margin-top: 32px; margin-bottom: 20px;">
+            <button class="btn-add-entry" onclick="openAddModal()" style="
+                background: linear-gradient(135deg, var(--primary), var(--primary-light));
+                color: white;
+                border: none;
+                padding: 14px 32px;
+                border-radius: 50px;
+                cursor: pointer;
+                font-size: 16px;
+                font-weight: 600;
+                display: inline-flex;
+                align-items: center;
+                gap: 12px;
+                transition: all 0.2s ease;
+                box-shadow: var(--shadow-md);
+            ">
+                <span style="font-size: 20px; font-weight: 400;">+</span> Добавить запись
+            </button>
+        </div>
+    </div>
+    
+    <!-- Модальное окно (добавление/редактирование) -->
+    <div id="entryModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalTitle">Новая запись</h2>
+                <button class="modal-close" onclick="closeModal()">&times;</button>
+            </div>
+            <form id="journalForm" method="POST">
+                <div class="modal-body">
+                    <input type="hidden" name="site_id" value="{{ site.id }}">
+                    <input type="hidden" name="entry_id" id="entryId" value="">
+                    
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>Дата <span class="required">*</span></label>
+                            <input type="date" name="date" id="dateField" required>
+                        </div>
+                        
+                        <div class="form-group work-type-combobox">
+                            <label>Вид работ <span class="required">*</span></label>
+                            <input type="text" id="workTypeInput" class="work-type-input" placeholder="Начните вводить..." autocomplete="off">
+                            <input type="hidden" id="workTypeHidden" name="work_type" required>
+                            <div class="work-type-dropdown" id="workTypeDropdown"></div>
+                            <div class="helper-text">Можно ввести свой вариант, если его нет в списке</div>
+                        </div>
+                        
+                        <div class="form-group full-width">
+                            <label>Описание работ</label>
+                            <textarea name="work_description" id="workDescription" placeholder="Дополнительные уточнения..."></textarea>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Место проведения</label>
+                            <input type="text" name="location" id="location" placeholder="Участок, этаж...">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Исполнитель</label>
+                            <input type="text" name="executor" id="executor" placeholder="Бригада / Подрядчик">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Ответственный</label>
+                            <input type="text" name="responsible_person" id="responsiblePerson" placeholder="ФИО прораба">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Количество рабочих</label>
+                            <input type="number" name="workers_count" id="workersCount" value="1" min="0">
+                        </div>
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Начало</label>
+                                <input type="time" name="start_time" id="startTime">
+                            </div>
+                            <div class="form-group">
+                                <label>Окончание</label>
+                                <input type="time" name="end_time" id="endTime">
+                            </div>
+                        </div>
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Объём</label>
+                                <input type="number" step="any" name="volume" id="volume" value="0">
+                            </div>
+                            <div class="form-group">
+                                <label>Ед. измерения</label>
+                                <select name="volume_unit" id="volumeUnit">
+                                    <option value="м³">м³</option>
+                                    <option value="м²">м²</option>
+                                    <option value="м">м</option>
+                                    <option value="т">т</option>
+                                    <option value="шт">шт</option>
+                                    <option value="компл">компл</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Оборудование</label>
+                            <input type="text" name="equipment_used" id="equipmentUsed" placeholder="Экскаватор, кран...">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Материалы</label>
+                            <input type="text" name="materials_used" id="materialsUsed" placeholder="Бетон, арматура...">
+                        </div>
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Погода</label>
+                                <input type="text" name="weather" id="weather" placeholder="Солнечно...">
+                            </div>
+                            <div class="form-group">
+                                <label>Температура</label>
+                                <input type="text" name="temperature" id="temperature" placeholder="+22°C">
+                            </div>
+                        </div>
+                        
+                        <div class="form-group full-width">
+                            <label>Примечания</label>
+                            <textarea name="notes" id="notes" placeholder="Дополнительная информация..."></textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-cancel" onclick="closeModal()">Отмена</button>
+                    <button type="submit" class="btn-submit">Сохранить</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <script>
+    const today = new Date().toISOString().split('T')[0];
+    
+    // Функция умного возврата
+    function goBack() {
+        if (document.referrer && document.referrer !== window.location.href) {
+            window.history.back();
+        } else {
+            window.location.href = "{{ url_for('index') }}";
+        }
+    }
+    
+    // ============ СТАНДАРТНЫЕ ВИДЫ РАБОТ (ПОДСКАЗКИ) ============
+    const defaultWorkTypes = [
+        // Подготовительные работы
+        "Геодезические работы",
+        "Инженерно-геологические изыскания",
+        "Расчистка территории",
+        "Снос зданий и сооружений",
+        "Демонтажные работы",
+        "Планировка территории",
+        "Вертикальная планировка грунта",
+        "Устройство подъездных путей",
+        "Временные здания и сооружения",
+        "Ограждение строительной площадки",
+        
+        // Земляные работы
+        "Разработка котлована",
+        "Разработка траншей",
+        "Обратная засыпка пазух",
+        "Уплотнение грунта",
+        "Планировка откосов",
+        "Устройство насыпей",
+        "Выемка грунта",
+        "Траншеекопательные работы",
+        "Бурение скважин",
+        "Гидромеханизированные земляные работы",
+        
+        // Свайные работы
+        "Забивка свай",
+        "Буронабивные сваи",
+        "Винтовые сваи",
+        "Устройство шпунтового ограждения",
+        "Испытание свай",
+        "Устройство ростверка",
+        
+        // Бетонные работы
+        "Устройство опалубки",
+        "Армирование конструкций",
+        "Бетонирование фундаментов",
+        "Укладка бетонной смеси",
+        "Уход за бетоном",
+        "Монолитные стены",
+        "Монолитные перекрытия",
+        "Монолитные колонны",
+        "Устройство бетонной подготовки",
+        "Торкретирование",
+        "Нагнетание цементного раствора",
+        
+        // Каменные работы
+        "Кладка стен из кирпича",
+        "Кладка стен из блоков",
+        "Облицовочные работы",
+        "Устройство перегородок",
+        "Армирование кладки",
+        "Заполнение проемов",
+        "Расшивка швов",
+        
+        // Монтажные работы
+        "Монтаж металлоконструкций",
+        "Монтаж железобетонных конструкций",
+        "Монтаж стеновых панелей",
+        "Монтаж плит перекрытия",
+        "Монтаж ферм и балок",
+        "Монтаж колонн",
+        "Установка лестничных маршей",
+        "Монтаж вентилируемого фасада",
+        "Установка оконных блоков",
+        "Установка дверных блоков",
+        
+        // Кровельные работы
+        "Устройство стропильной системы",
+        "Устройство обрешетки",
+        "Пароизоляция кровли",
+        "Теплоизоляция кровли",
+        "Гидроизоляция кровли",
+        "Монтаж металлочерепицы",
+        "Монтаж мягкой кровли",
+        "Монтаж фальцевой кровли",
+        "Устройство плоской кровли",
+        "Монтаж водостоков",
+        "Монтаж снегозадержателей",
+        
+        // Отделочные работы
+        "Штукатурные работы",
+        "Шпаклевочные работы",
+        "Облицовка плиткой",
+        "Укладка керамогранита",
+        "Устройство наливных полов",
+        "Укладка ламината",
+        "Укладка паркета",
+        "Покрасочные работы",
+        "Оклейка обоями",
+        "Устройство подвесных потолков",
+        "Устройство натяжных потолков",
+        "Декоративная штукатурка",
+        "Фасадные работы",
+        
+        // Электромонтажные работы
+        "Монтаж электрощитового оборудования",
+        "Прокладка кабельных линий",
+        "Монтаж проводки",
+        "Установка розеток и выключателей",
+        "Монтаж освещения",
+        "Заземление и молниезащита",
+        "Монтаж слаботочных систем",
+        "Пусконаладочные работы",
+        "Монтаж видеонаблюдения",
+        "Прокладка интернет-кабелей",
+        
+        // Сантехнические работы
+        "Монтаж систем водоснабжения",
+        "Монтаж систем канализации",
+        "Монтаж систем отопления",
+        "Установка радиаторов",
+        "Установка сантехники",
+        "Монтаж теплых полов",
+        "Гидравлические испытания",
+        "Промывка систем",
+        "Монтаж фильтров воды",
+        
+        // Вентиляционные работы
+        "Монтаж воздуховодов",
+        "Монтаж вентиляционного оборудования",
+        "Установка вентиляционных решеток",
+        "Монтаж кондиционеров",
+        "Наладка вентиляции",
+        "Теплоизоляция воздуховодов",
+        
+        // Сварочные работы
+        "Электросварочные работы",
+        "Газосварочные работы",
+        "Аргонодуговая сварка",
+        "Сварка металлоконструкций",
+        "Сварка трубопроводов",
+        "Контроль сварных швов",
+        
+        // Изоляционные работы
+        "Гидроизоляция фундаментов",
+        "Гидроизоляция стен",
+        "Теплоизоляция фасадов",
+        "Теплоизоляция трубопроводов",
+        "Звукоизоляция перегородок",
+        "Огнезащита конструкций",
+        "Антикоррозийная обработка",
+        
+        // Благоустройство
+        "Устройство тротуаров",
+        "Асфальтирование территории",
+        "Укладка брусчатки",
+        "Озеленение территории",
+        "Посадка деревьев и кустарников",
+        "Устройство газонов",
+        "Монтаж малых архитектурных форм",
+        "Установка заборов и ограждений",
+        "Монтаж детских площадок",
+        
+        // Пусконаладочные работы
+        "Пусконаладка электрооборудования",
+        "Пусконаладка вентиляции",
+        "Пусконаладка отопления",
+        "Пусконаладка водоснабжения",
+        "Комплексное опробование",
+        
+        // Специальные работы
+        "Реставрационные работы",
+        "Аварийно-восстановительные работы",
+        "Усиление конструкций",
+        "Монтаж лифтового оборудования",
+        "Промышленные полы",
+        "Чистовые полы"
+    ];
+    
+    // Объединяем виды работ из БД со стандартными (убираем дубликаты)
+    let allWorkTypesFromDB = {{ all_work_types | tojson }};
+    
+    // Создаём уникальный объединённый список
+    let allWorkTypes = [...new Set([...defaultWorkTypes, ...allWorkTypesFromDB])];
+    
+    // Сортируем по алфавиту
+    allWorkTypes.sort();
+    
+    // ============ УМНЫЙ ПОИСК ============
+    let fuse;
+    
+    function loadFuse() {
+        if (typeof Fuse !== 'undefined') {
+            initFuse();
+        } else {
+            const script = document.createElement('script');
+            script.src = 'https://cdn.jsdelivr.net/npm/fuse.js@7.0.0/dist/fuse.min.js';
+            script.onload = initFuse;
+            document.head.appendChild(script);
+        }
+    }
+    
+    function initFuse() {
+        const rows = document.querySelectorAll('#tableBody tr');
+        const searchData = [];
+        rows.forEach(row => {
+            if (row.cells && row.cells.length > 0 && row.id !== 'no-results') {
+                const searchText = row.getAttribute('data-search') || row.innerText || '';
+                searchData.push({
+                    element: row,
+                    text: searchText
+                });
+            }
+        });
+        
+        const options = {
+            keys: ['text'],
+            threshold: 0.3,
+            distance: 100,
+            ignoreLocation: true
+        };
+        
+        fuse = new Fuse(searchData, options);
+    }
+    
+    function fuzzySearch(query) {
+        if (!fuse || !query.trim()) {
+            const rows = document.querySelectorAll('#tableBody tr');
+            rows.forEach(row => {
+                if (row.cells && row.cells.length > 0) {
+                    row.style.display = '';
+                }
+            });
+            return;
+        }
+        
+        const results = fuse.search(query);
+        const matchedElements = new Set(results.map(r => r.item.element));
+        
+        const rows = document.querySelectorAll('#tableBody tr');
+        rows.forEach(row => {
+            if (row.cells && row.cells.length > 0) {
+                row.style.display = matchedElements.has(row) ? '' : 'none';
+            }
+        });
+    }
+    
+    const searchInput = document.getElementById('smartSearchInput');
+    const suggestionsDiv = document.getElementById('searchSuggestions');
+    
+    if (searchInput) {
+        searchInput.addEventListener('input', function() {
+            const query = this.value;
+            if (query.length > 1) {
+                const matches = allWorkTypes.filter(wt => 
+                    wt.toLowerCase().includes(query.toLowerCase())
+                ).slice(0, 5);
+                
+                if (matches.length > 0) {
+                    suggestionsDiv.innerHTML = matches.map(m => 
+                        `<div class="suggestion-item" onclick="selectSuggestion('${m.replace(/'/g, "\\'")}')">
+                            <i class="fas fa-tag" style="margin-right: 8px; opacity: 0.6;"></i>${m}
+                        </div>`
+                    ).join('');
+                    suggestionsDiv.classList.add('active');
+                } else {
+                    suggestionsDiv.classList.remove('active');
+                }
+            } else {
+                suggestionsDiv.classList.remove('active');
+            }
+            
+            fuzzySearch(query);
+        });
+    }
+    
+    function selectSuggestion(text) {
+        searchInput.value = text;
+        suggestionsDiv.classList.remove('active');
+        fuzzySearch(text);
+    }
+    
+    document.addEventListener('click', function(e) {
+        if (!searchInput.contains(e.target) && !suggestionsDiv.contains(e.target)) {
+            suggestionsDiv.classList.remove('active');
+        }
+    });
+    
+    // ============ ФИЛЬТРЫ ============
+    function applyFilters() {
+        const dateFrom = document.getElementById('dateFrom').value;
+        const dateTo = document.getElementById('dateTo').value;
+        const workType = document.getElementById('workTypeFilter').value;
+        const responsible = document.getElementById('responsibleFilter').value;
+        
+        const params = new URLSearchParams();
+        if (dateFrom) params.append('date_from', dateFrom);
+        if (dateTo) params.append('date_to', dateTo);
+        if (workType) params.append('work_type', workType);
+        if (responsible) params.append('responsible', responsible);
+        
+        window.location.href = `{{ url_for('journal', site_id=site.id) }}?${params.toString()}`;
+    }
+    
+    // ============ ПАНЕЛЬ ПОИСКА ============
+    function toggleSearch() {
+        const searchBody = document.getElementById('searchBody');
+        const header = document.querySelector('.search-header');
+        
+        searchBody.classList.toggle('active');
+        header.classList.toggle('collapsed');
+    }
+    
+    // ============ МОДАЛЬНОЕ ОКНО ============
+    let isEditMode = false;
+    
+    function openAddModal() {
+        isEditMode = false;
+        document.getElementById('modalTitle').innerText = 'Новая запись';
+        document.getElementById('journalForm').reset();
+        document.getElementById('entryId').value = '';
+        document.getElementById('dateField').value = today;
+        document.getElementById('workTypeInput').value = '';
+        document.getElementById('workTypeHidden').value = '';
+        document.getElementById('journalForm').action = "{{ url_for('add_entry') }}";
+        document.getElementById('entryModal').classList.add('active');
+        
+        setTimeout(() => {
+            document.getElementById('workTypeInput').focus();
+        }, 100);
+    }
+    
+    async function openEditModal(entryId) {
+        isEditMode = true;
+        document.getElementById('modalTitle').innerText = 'Редактирование записи';
+        
+        try {
+            const response = await fetch(`/get-entry/${entryId}`);
+            const data = await response.json();
+            
+            document.getElementById('entryId').value = entryId;
+            document.getElementById('dateField').value = data.date;
+            document.getElementById('workTypeInput').value = data.work_type;
+            document.getElementById('workTypeHidden').value = data.work_type;
+            document.getElementById('workDescription').value = data.work_description;
+            document.getElementById('location').value = data.location;
+            document.getElementById('executor').value = data.executor;
+            document.getElementById('responsiblePerson').value = data.responsible_person;
+            document.getElementById('workersCount').value = data.workers_count;
+            document.getElementById('startTime').value = data.start_time;
+            document.getElementById('endTime').value = data.end_time;
+            document.getElementById('volume').value = data.volume;
+            document.getElementById('volumeUnit').value = data.volume_unit;
+            document.getElementById('equipmentUsed').value = data.equipment_used;
+            document.getElementById('materialsUsed').value = data.materials_used;
+            document.getElementById('weather').value = data.weather;
+            document.getElementById('temperature').value = data.temperature;
+            document.getElementById('notes').value = data.notes;
+            
+            document.getElementById('journalForm').action = `/update-entry/${entryId}`;
+            document.getElementById('entryModal').classList.add('active');
+        } catch (error) {
+            console.error('Ошибка загрузки:', error);
+            alert('Не удалось загрузить данные записи');
+        }
+    }
+    
+    function closeModal() {
+        document.getElementById('entryModal').classList.remove('active');
+    }
+    
+    function deleteEntry(entryId) {
+        if (confirm('🗑️ Удалить эту запись? Действие необратимо.')) {
+            window.location.href = `/delete-entry/${entryId}`;
+        }
+    }
+    
+    // ============ КОМБОБОКС ДЛЯ ВИДА РАБОТ ============
+    const workTypeInputModal = document.getElementById('workTypeInput');
+    const workTypeHiddenModal = document.getElementById('workTypeHidden');
+    const workTypeDropdownModal = document.getElementById('workTypeDropdown');
+    
+    function showWorkTypeSuggestions() {
+        const filter = workTypeInputModal.value;
+        
+        if (filter.length < 1) {
+            workTypeDropdownModal.classList.remove('active');
+            return;
+        }
+        
+        let filtered = allWorkTypes.filter(wt => 
+            wt.toLowerCase().includes(filter.toLowerCase())
+        );
+        
+        if (filtered.length > 0) {
+            workTypeDropdownModal.innerHTML = filtered.map(wt => 
+                `<div class="work-type-option" onclick="selectWorkType('${wt.replace(/'/g, "\\'")}')">
+                    <i class="fas fa-tag" style="margin-right: 8px; opacity: 0.6;"></i>${wt}
+                </div>`
+            ).join('');
+            workTypeDropdownModal.classList.add('active');
+        } else {
+            workTypeDropdownModal.innerHTML = `<div class="work-type-option" onclick="selectWorkType('${filter.replace(/'/g, "\\'")}')">
+                <i class="fas fa-plus" style="color: var(--success); margin-right: 8px;"></i>Добавить "${filter}"
+            </div>`;
+            workTypeDropdownModal.classList.add('active');
+        }
+    }
+    
+    function selectWorkType(value) {
+        workTypeInputModal.value = value;
+        workTypeHiddenModal.value = value;
+        workTypeDropdownModal.classList.remove('active');
+    }
+    
+    if (workTypeInputModal) {
+        workTypeInputModal.addEventListener('input', function() {
+            showWorkTypeSuggestions();
+            if (this.value) {
+                workTypeHiddenModal.value = this.value;
+            }
+        });
+    }
+    
+    document.addEventListener('click', function(e) {
+        if (!workTypeInputModal.contains(e.target) && !workTypeDropdownModal.contains(e.target)) {
+            workTypeDropdownModal.classList.remove('active');
+        }
+    });
+    
+    // Инициализация
+    document.addEventListener('DOMContentLoaded', function() {
+        loadFuse();
+        document.getElementById('dateField').value = today;
+        
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.toString()) {
+            document.getElementById('searchBody').classList.add('active');
+            document.querySelector('.search-header').classList.remove('collapsed');
+        }
+        
+        const workTypeFilter = document.getElementById('workTypeFilter');
+        if (workTypeFilter && allWorkTypes.length > 0) {
+            allWorkTypes.forEach(wt => {
+                let exists = false;
+                for (let i = 0; i < workTypeFilter.options.length; i++) {
+                    if (workTypeFilter.options[i].value === wt) {
+                        exists = true;
+                        break;
+                    }
+                }
+                if (!exists && wt !== 'Все') {
+                    const option = document.createElement('option');
+                    option.value = wt;
+                    option.textContent = wt;
+                    workTypeFilter.appendChild(option);
+                }
+            });
+        }
+    });
+    
+    setTimeout(() => {
+        const flashMessages = document.querySelectorAll('.flash-message');
+        flashMessages.forEach(msg => {
+            setTimeout(() => {
+                msg.style.opacity = '0';
+                setTimeout(() => msg.remove(), 300);
+            }, 2500);
+        });
+    }, 100);
+    </script>
+    
+    <!-- Flash сообщения -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for category, message in messages %}
+            <div class="flash-message flash-{{ category }}">{{ message }}</div>
+        {% endfor %}
+    {% endwith %}
+</body>
+</html>

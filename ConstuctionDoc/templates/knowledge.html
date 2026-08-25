@@ -1,0 +1,383 @@
+{% extends "base.html" %}
+
+{% block title %}База знаний{% endblock %}
+
+{% block extra_css %}
+<style>
+    .tip-card {
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .tip-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+    }
+    .search-section {
+        background: var(--bs-card-bg);
+        padding: 20px;
+        border-radius: 16px;
+        margin-bottom: 24px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    }
+    .category-badge {
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    .category-badge:hover {
+        transform: scale(1.05);
+        opacity: 0.8;
+    }
+    .tip-icon {
+        font-size: 2rem;
+        color: #ffc107;
+    }
+    .empty-state {
+        padding: 60px 20px;
+        text-align: center;
+    }
+    .empty-state i {
+        font-size: 4rem;
+        color: var(--bs-secondary-color);
+        margin-bottom: 20px;
+    }
+    .stats-bar {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 15px 20px;
+        border-radius: 16px;
+        margin-bottom: 24px;
+    }
+    .stats-bar .stat {
+        text-align: center;
+    }
+    .stats-bar .stat-number {
+        font-size: 1.8rem;
+        font-weight: bold;
+    }
+    .stats-bar .stat-label {
+        font-size: 0.85rem;
+        opacity: 0.9;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('index') }}">Главная</a></li>
+            <li class="breadcrumb-item active">База знаний</li>
+        </ol>
+    </nav>
+</div>
+
+<div class="mb-4">
+    <h2><i class="fas fa-graduation-cap"></i> База знаний строителя</h2>
+    <p class="text-muted">Полезные советы, инструкции и рекомендации для профессиональных строителей</p>
+</div>
+
+<!-- Статистика -->
+{% if tips %}
+<div class="stats-bar mb-4">
+    <div class="row">
+        <div class="col-md-4 col-6 stat">
+            <div class="stat-number">{{ tips|length }}</div>
+            <div class="stat-label">Всего подсказок</div>
+        </div>
+        <div class="col-md-4 col-6 stat">
+            <div class="stat-number">{{ categories|length if categories else 0 }}</div>
+            <div class="stat-label">Категорий</div>
+        </div>
+        <div class="col-md-4 d-none d-md-block stat">
+            <div class="stat-number">
+                <i class="fas fa-lightbulb"></i>
+            </div>
+            <div class="stat-label">Полезных советов</div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Поиск и фильтры -->
+<div class="search-section">
+    <div class="row g-3">
+        <div class="col-md-5">
+            <div class="input-group">
+                <span class="input-group-text"><i class="fas fa-search"></i></span>
+                <input type="text" id="searchInput" class="form-control" 
+                       placeholder="Поиск по заголовку, содержанию, шагам..." 
+                       value="{{ search or '' }}">
+                <button class="btn btn-primary" onclick="searchTips()">
+                    <i class="fas fa-search"></i> Найти
+                </button>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <select id="categoryFilter" class="form-select" onchange="filterByCategory()">
+                <option value="">📂 Все категории</option>
+                {% if categories %}
+                    {% for cat in categories %}
+                    <option value="{{ cat }}" {% if selected_category == cat %}selected{% endif %}>
+                        {{ cat }}
+                    </option>
+                    {% endfor %}
+                {% else %}
+                    <option value="Фундаментные работы">🏗️ Фундаментные работы</option>
+                    <option value="Кровельные работы">🏠 Кровельные работы</option>
+                    <option value="Электромонтажные работы">⚡ Электромонтажные работы</option>
+                    <option value="Штукатурные работы">🛠️ Штукатурные работы</option>
+                    <option value="Сантехнические работы">🚰 Сантехнические работы</option>
+                    <option value="Бетонные работы">🧱 Бетонные работы</option>
+                {% endif %}
+            </select>
+        </div>
+        <div class="col-md-3">
+            <button class="btn btn-outline-secondary w-100" onclick="resetFilters()">
+                <i class="fas fa-undo"></i> Сбросить фильтры
+            </button>
+        </div>
+    </div>
+    
+    <!-- Активные фильтры -->
+    <div id="activeFilters" class="mt-3" style="display: none;">
+        <small class="text-muted">Активные фильтры:</small>
+        <div class="mt-1">
+            <span id="searchFilterBadge" class="badge bg-primary me-1" style="display: none;">
+                <i class="fas fa-search"></i> Поиск: <span id="searchTerm"></span>
+                <span class="remove-filter ms-1" onclick="clearSearch()" style="cursor: pointer;">&times;</span>
+            </span>
+            <span id="categoryFilterBadge" class="badge bg-info me-1" style="display: none;">
+                <i class="fas fa-tag"></i> Категория: <span id="categoryTerm"></span>
+                <span class="remove-filter ms-1" onclick="clearCategory()" style="cursor: pointer;">&times;</span>
+            </span>
+        </div>
+    </div>
+</div>
+
+<!-- Результаты -->
+{% if tips %}
+<div class="row" id="tipsContainer">
+    {% for tip in tips %}
+    <div class="col-md-6 col-lg-4 mb-4 tip-card" 
+         data-title="{{ (tip.title or '').lower() }}" 
+         data-content="{{ (tip.content or '').lower() }}"
+         data-category="{{ tip.category or '' }}"
+         data-id="{{ tip.id }}">
+        <div class="card h-100">
+            <div class="card-body">
+                <div class="d-flex align-items-center mb-3">
+                    <i class="fas fa-lightbulb tip-icon me-2"></i>
+                    <h5 class="card-title mb-0">{{ tip.title|e }}</h5>
+                </div>
+                <p class="card-text text-muted">
+                    {% set content = tip.content or '' %}
+                    {{ content[:120]|e }}{% if content|length > 120 %}...{% endif %}
+                </p>
+                {% if tip.category %}
+                <div class="mt-2">
+                    <span class="badge bg-info category-badge" onclick="filterByCategoryValue('{{ tip.category }}')">
+                        <i class="fas fa-tag"></i> {{ tip.category|e }}
+                    </span>
+                </div>
+                {% endif %}
+            </div>
+            <div class="card-footer bg-transparent">
+                <a href="{{ url_for('knowledge_detail', tip_id=tip.id) }}" class="btn btn-sm btn-outline-primary w-100">
+                    <i class="fas fa-eye"></i> Подробнее
+                </a>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Подсчёт результатов -->
+<div class="text-center mt-4">
+    <small class="text-muted" id="resultsCount">
+        Показано <span id="visibleCount">{{ tips|length }}</span> из {{ tips|length }} подсказок
+    </small>
+</div>
+
+{% else %}
+<div class="empty-state">
+    <i class="fas fa-graduation-cap"></i>
+    <h4>Подсказки не найдены</h4>
+    <p class="text-muted">Попробуйте изменить параметры поиска или выберите другую категорию</p>
+    <button class="btn btn-primary" onclick="resetFilters()">
+        <i class="fas fa-undo"></i> Сбросить фильтры
+    </button>
+</div>
+{% endif %}
+
+<script>
+// Функция поиска
+function searchTips() {
+    const searchTerm = document.getElementById('searchInput').value.toLowerCase().trim();
+    const category = document.getElementById('categoryFilter').value;
+    
+    filterTips(searchTerm, category);
+    updateActiveFilters(searchTerm, category);
+}
+
+// Фильтрация по категории
+function filterByCategory() {
+    const category = document.getElementById('categoryFilter').value;
+    const searchTerm = document.getElementById('searchInput').value.toLowerCase().trim();
+    
+    filterTips(searchTerm, category);
+    updateActiveFilters(searchTerm, category);
+}
+
+// Фильтрация при клике на категорию
+function filterByCategoryValue(category) {
+    const categorySelect = document.getElementById('categoryFilter');
+    if (categorySelect) {
+        categorySelect.value = category;
+        filterByCategory();
+    }
+}
+
+// Основная функция фильтрации
+function filterTips(searchTerm, category) {
+    const cards = document.querySelectorAll('.tip-card');
+    let visibleCount = 0;
+    
+    cards.forEach(card => {
+        const title = card.getAttribute('data-title') || '';
+        const content = card.getAttribute('data-content') || '';
+        const cardCategory = card.getAttribute('data-category') || '';
+        
+        let matchesSearch = true;
+        let matchesCategory = true;
+        
+        if (searchTerm) {
+            matchesSearch = title.includes(searchTerm) || content.includes(searchTerm);
+        }
+        
+        if (category && category !== '') {
+            matchesCategory = cardCategory === category;
+        }
+        
+        if (matchesSearch && matchesCategory) {
+            card.style.display = '';
+            visibleCount++;
+        } else {
+            card.style.display = 'none';
+        }
+    });
+    
+    // Обновляем счётчик
+    const visibleCountSpan = document.getElementById('visibleCount');
+    if (visibleCountSpan) {
+        visibleCountSpan.innerText = visibleCount;
+    }
+    
+    // Показываем сообщение если ничего не найдено
+    const container = document.getElementById('tipsContainer');
+    if (container && visibleCount === 0 && cards.length > 0) {
+        let noResultsMsg = document.getElementById('noResultsMsg');
+        if (!noResultsMsg) {
+            noResultsMsg = document.createElement('div');
+            noResultsMsg.id = 'noResultsMsg';
+            noResultsMsg.className = 'col-12 text-center py-5';
+            noResultsMsg.innerHTML = `
+                <i class="fas fa-search fa-3x text-muted mb-3"></i>
+                <h5>Ничего не найдено</h5>
+                <p class="text-muted">Попробуйте изменить параметры поиска</p>
+            `;
+            container.appendChild(noResultsMsg);
+        }
+    } else {
+        const noResultsMsg = document.getElementById('noResultsMsg');
+        if (noResultsMsg) noResultsMsg.remove();
+    }
+}
+
+// Обновление отображения активных фильтров
+function updateActiveFilters(searchTerm, category) {
+    const activeFiltersDiv = document.getElementById('activeFilters');
+    const searchBadge = document.getElementById('searchFilterBadge');
+    const categoryBadge = document.getElementById('categoryFilterBadge');
+    const searchTermSpan = document.getElementById('searchTerm');
+    const categoryTermSpan = document.getElementById('categoryTerm');
+    
+    let hasActiveFilters = false;
+    
+    if (searchTerm) {
+        if (searchBadge) searchBadge.style.display = 'inline-block';
+        if (searchTermSpan) searchTermSpan.innerText = searchTerm;
+        hasActiveFilters = true;
+    } else {
+        if (searchBadge) searchBadge.style.display = 'none';
+    }
+    
+    if (category && category !== '') {
+        if (categoryBadge) categoryBadge.style.display = 'inline-block';
+        if (categoryTermSpan) categoryTermSpan.innerText = category;
+        hasActiveFilters = true;
+    } else {
+        if (categoryBadge) categoryBadge.style.display = 'none';
+    }
+    
+    if (activeFiltersDiv) {
+        activeFiltersDiv.style.display = hasActiveFilters ? 'block' : 'none';
+    }
+}
+
+// Сброс фильтров
+function resetFilters() {
+    const searchInput = document.getElementById('searchInput');
+    const categorySelect = document.getElementById('categoryFilter');
+    
+    if (searchInput) searchInput.value = '';
+    if (categorySelect) categorySelect.value = '';
+    
+    filterTips('', '');
+    updateActiveFilters('', '');
+}
+
+// Очистка поиска
+function clearSearch() {
+    const searchInput = document.getElementById('searchInput');
+    if (searchInput) searchInput.value = '';
+    filterTips('', document.getElementById('categoryFilter').value);
+    updateActiveFilters('', document.getElementById('categoryFilter').value);
+}
+
+// Очистка категории
+function clearCategory() {
+    const categorySelect = document.getElementById('categoryFilter');
+    if (categorySelect) categorySelect.value = '';
+    filterTips(document.getElementById('searchInput').value.toLowerCase().trim(), '');
+    updateActiveFilters(document.getElementById('searchInput').value.toLowerCase().trim(), '');
+}
+
+// Поиск при нажатии Enter
+const searchInput = document.getElementById('searchInput');
+if (searchInput) {
+    searchInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            searchTips();
+        }
+    });
+}
+
+// Инициализация - применяем фильтры если они были в URL
+document.addEventListener('DOMContentLoaded', function() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const searchParam = urlParams.get('search');
+    const categoryParam = urlParams.get('category');
+    
+    if (searchParam && searchInput) {
+        searchInput.value = searchParam;
+    }
+    if (categoryParam) {
+        const categorySelect = document.getElementById('categoryFilter');
+        if (categorySelect) categorySelect.value = categoryParam;
+    }
+    
+    if (searchParam || categoryParam) {
+        searchTips();
+    }
+});
+</script>
+{% endblock %}

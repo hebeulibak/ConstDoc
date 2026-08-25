@@ -1,0 +1,331 @@
+{% extends "base.html" %}
+
+{% block title %}База знаний{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* ФОРСИРОВАННОЕ ОТОБРАЖЕНИЕ КАРТОЧЕК */
+    .row {
+        display: flex !important;
+        flex-wrap: wrap !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+    }
+
+    .col-md-6, .col-lg-4 {
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+    }
+
+    .card {
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        background: white !important;
+        border: 1px solid #ddd !important;
+        margin-bottom: 20px !important;
+    }
+
+    .card-body {
+        display: block !important;
+        padding: 20px !important;
+    }
+
+    /* Явные цвета для карточек статей */
+    .article-card {
+        background: white !important;
+        color: #1e293b !important;
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        border-radius: 20px !important;
+        overflow: hidden !important;
+    }
+
+    .article-card .card-body {
+        background: white !important;
+        padding: 20px !important;
+    }
+
+    .article-card .card-title {
+        color: #1a3a3a !important;
+        font-size: 1.1rem !important;
+        font-weight: 600 !important;
+    }
+
+    .article-card .text-secondary {
+        color: #5b6e8c !important;
+    }
+
+    /* Стили для карточек */
+    .article-card {
+        transition: transform 0.2s, box-shadow 0.2s;
+        border: none;
+        border-radius: 20px;
+        overflow: hidden;
+    }
+    .article-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+    }
+    .filter-bar {
+        background: var(--bs-card-bg);
+        padding: 20px;
+        border-radius: 16px;
+        margin-bottom: 24px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        border: 1px solid var(--border);
+    }
+    .category-badge {
+        font-size: 0.7rem;
+        padding: 5px 12px;
+        border-radius: 20px;
+        font-weight: 600;
+    }
+    .views-count {
+        font-size: 0.75rem;
+        color: var(--text-muted);
+    }
+    .btn-outline-premium {
+        border: 1px solid var(--primary);
+        color: var(--primary);
+        transition: all 0.2s;
+        border-radius: 12px;
+    }
+    .btn-outline-premium:hover {
+        background: var(--primary);
+        color: white;
+    }
+
+    /* Кнопка назад */
+    .back-button {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        background: var(--bg-card);
+        color: var(--text-primary);
+        padding: 10px 20px;
+        border-radius: 40px;
+        text-decoration: none;
+        font-size: 0.9rem;
+        border: 1px solid var(--border);
+        transition: all 0.3s;
+        cursor: pointer;
+        margin-bottom: 20px;
+    }
+    
+    .back-button:hover {
+        transform: translateX(-5px);
+        border-color: var(--accent);
+    }
+
+    /* Тёмная тема */
+    [data-bs-theme="dark"] .article-card {
+        background: #1e293b !important;
+    }
+    [data-bs-theme="dark"] .article-card .card-body {
+        background: #1e293b !important;
+    }
+    [data-bs-theme="dark"] .article-card .card-title {
+        color: #f1f5f9 !important;
+    }
+    [data-bs-theme="dark"] .btn-outline-premium {
+        border-color: #d4a373;
+        color: #d4a373;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0">
+    <!-- Кнопка назад -->
+    <a href="javascript:void(0);" onclick="goBack()" class="back-button">
+        <i class="fas fa-arrow-left"></i> Назад
+    </a>
+    
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="fas fa-graduation-cap" style="color: var(--accent);"></i> База знаний</h2>
+        <button class="btn btn-premium" data-bs-toggle="modal" data-bs-target="#addArticleModal">
+            <i class="fas fa-plus"></i> Добавить статью
+        </button>
+    </div>
+
+    <!-- Фильтры -->
+    <div class="filter-bar">
+        <div class="row g-3">
+            <div class="col-md-8">
+                <form method="GET" action="{{ url_for('knowledge_base') }}" class="d-flex gap-2" id="searchForm">
+                    <div class="input-group">
+                        <span class="input-group-text bg-transparent">
+                            <i class="fas fa-search text-muted"></i>
+                        </span>
+                        <input type="text" name="search" class="form-control" 
+                               placeholder="Поиск по названию или содержанию..." 
+                               value="{{ search or '' }}"
+                               style="border-left: none;">
+                    </div>
+                    <button type="submit" class="btn btn-premium">
+                        <i class="fas fa-search"></i> Поиск
+                    </button>
+                </form>
+            </div>
+            <div class="col-md-4">
+                <select class="form-select" id="categoryFilter" style="border-radius: 12px;">
+                    <option value="">Все категории</option>
+                    {% for cat in categories %}
+                    <option value="{{ cat }}" {% if selected_category == cat %}selected{% endif %}>{{ cat }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        
+        {% if search or selected_category %}
+        <div class="mt-3">
+            <a href="{{ url_for('knowledge_base') }}" class="btn btn-sm btn-outline-secondary rounded-3">
+                <i class="fas fa-times"></i> Сбросить фильтры
+            </a>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Список статей -->
+    <div class="row">
+        {% for article in articles %}
+        <div class="col-md-6 col-lg-4 mb-4" data-aos="fade-up" data-aos-delay="{{ loop.index * 50 }}">
+            <div class="card h-100 article-card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <span class="badge category-badge" style="background: linear-gradient(135deg, var(--primary), var(--primary-dark)); color: white;">
+                            <i class="fas fa-folder"></i> {{ article.category or 'Общее' }}
+                        </span>
+                    </div>
+                    
+                    <h5 class="card-title mb-2">{{ article.title }}</h5>
+                    <p class="small text-secondary mb-3">
+                        {{ article.content[:120] }}{% if article.content|length > 120 %}...{% endif %}
+                    </p>
+                    
+                    <div class="mt-3 d-flex justify-content-between align-items-center">
+                        <div class="views-count">
+                            <i class="fas fa-eye"></i> {{ article.views }} просмотров
+                        </div>
+                        <div class="small text-muted">
+                            <i class="fas fa-user"></i> {{ article.author or 'Admin' }}
+                        </div>
+                    </div>
+                    <div class="small text-muted mt-1">
+                        <i class="fas fa-calendar"></i> {{ article.created_at.strftime('%d.%m.%Y') }}
+                    </div>
+                </div>
+                <div class="card-footer bg-transparent">
+                    <a href="{{ url_for('view_article', article_id=article.id) }}" class="btn btn-outline-premium w-100">
+                        <i class="fas fa-book-open"></i> Читать статью
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <div class="col-12">
+            <div class="alert alert-info text-center py-5 rounded-4" data-aos="fade-up">
+                <i class="fas fa-graduation-cap fa-4x mb-3 d-block" style="color: var(--accent);"></i>
+                <h5 style="color: var(--primary);">Статей не найдено</h5>
+                <p class="mb-0">Добавьте первую статью в базу знаний</p>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Modal добавления статьи -->
+<div class="modal fade" id="addArticleModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content rounded-4">
+            <div class="modal-header" style="background: var(--primary); color: white; border: none; border-radius: 16px 16px 0 0;">
+                <h5 class="modal-title">
+                    <i class="fas fa-plus"></i> Добавить статью
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('add_article') }}">
+                <div class="modal-body p-4">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Заголовок *</label>
+                        <input type="text" name="title" class="form-control rounded-3" required placeholder="Введите заголовок статьи">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Категория</label>
+                        <select name="category" class="form-control rounded-3">
+                            <option value="Практика">Практика</option>
+                            <option value="Безопасность">Безопасность</option>
+                            <option value="Технология">Технология</option>
+                            <option value="Документация">Документация</option>
+                            <option value="Законодательство">Законодательство</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Содержание *</label>
+                        <textarea name="content" class="form-control rounded-3" rows="8" required placeholder="Текст статьи..."></textarea>
+                        <small class="text-muted">Поддерживается обычный текст. Для форматирования используйте переносы строк.</small>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0 pb-4 px-4">
+                    <button type="button" class="btn btn-secondary rounded-3" data-bs-dismiss="modal">Отмена</button>
+                    <button type="submit" class="btn btn-premium rounded-3">
+                        <i class="fas fa-save"></i> Опубликовать
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Функция умного возврата
+    function goBack() {
+        if (document.referrer && document.referrer !== window.location.href) {
+            window.history.back();
+        } else {
+            window.location.href = "{{ url_for('index') }}";
+        }
+    }
+    
+    // Фильтрация по категории
+    document.getElementById('categoryFilter')?.addEventListener('change', function() {
+        const selectedCategory = this.value;
+        const currentUrl = new URL(window.location.href);
+        
+        if (selectedCategory) {
+            currentUrl.searchParams.set('category', selectedCategory);
+        } else {
+            currentUrl.searchParams.delete('category');
+        }
+        
+        const searchInput = document.querySelector('input[name="search"]');
+        if (searchInput && searchInput.value) {
+            currentUrl.searchParams.set('search', searchInput.value);
+        } else {
+            currentUrl.searchParams.delete('search');
+        }
+        
+        window.location.href = currentUrl.toString();
+    });
+    
+    // Поиск по Enter
+    document.querySelector('input[name="search"]')?.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            document.getElementById('searchForm')?.submit();
+        }
+    });
+    
+    // Инициализация AOS
+    document.addEventListener('DOMContentLoaded', function() {
+        if (typeof AOS !== 'undefined') {
+            AOS.refresh();
+        }
+    });
+</script>
+{% endblock %}

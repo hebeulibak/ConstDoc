@@ -1,0 +1,171 @@
+{% extends "base.html" %}
+
+{% block title %}Исходящие документы - {{ site.name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .back-button {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        background: var(--bg-card);
+        color: var(--text-primary);
+        padding: 10px 20px;
+        border-radius: 40px;
+        text-decoration: none;
+        font-size: 0.9rem;
+        border: 1px solid var(--border);
+        transition: all 0.3s;
+        cursor: pointer;
+    }
+    
+    .back-button:hover {
+        transform: translateX(-5px);
+        border-color: var(--accent);
+    }
+    
+    .btn-outline-danger-custom {
+        background: rgba(197, 48, 48, 0.12);
+        color: var(--danger);
+        border: none;
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
+        transition: all 0.2s;
+    }
+    
+    .btn-outline-danger-custom:hover {
+        background: var(--danger);
+        color: white;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <a href="javascript:void(0);" onclick="goBack()" class="back-button">
+            <i class="fas fa-arrow-left"></i> Назад
+        </a>
+        <button class="btn btn-premium" onclick="openUploadModal()">
+            <i class="fas fa-upload"></i> Загрузить
+        </button>
+    </div>
+    
+    <h2><i class="fas fa-upload" style="color: var(--accent);"></i> Исходящие документы</h2>
+    
+    <div id="documentsList" class="mt-4">
+        <div class="text-center py-5 text-muted">
+            <i class="fas fa-spinner fa-spin fa-2x mb-3"></i>
+            <p>Загрузка документов...</p>
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно -->
+<div class="modal fade" id="uploadModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-4">
+            <div class="modal-header" style="background: var(--primary); color: white;">
+                <h5 class="modal-title">Загрузка документа</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="uploadForm" method="POST" enctype="multipart/form-data" action="/upload-document">
+                <div class="modal-body">
+                    <input type="hidden" name="site_id" value="{{ site.id }}">
+                    <input type="hidden" name="doc_type" value="outgoing">
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Название *</label>
+                        <input type="text" name="title" class="form-control" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Описание</label>
+                        <textarea name="description" class="form-control" rows="2"></textarea>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Файл *</label>
+                        <input type="file" name="file" class="form-control" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                    <button type="submit" class="btn btn-premium">Загрузить</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Функция умного возврата
+    function goBack() {
+        if (document.referrer && document.referrer !== window.location.href) {
+            window.history.back();
+        } else {
+            window.location.href = "{{ url_for('index') }}";
+        }
+    }
+    
+    function loadDocuments() {
+        fetch(`/api/documents/{{ site.id }}?type=outgoing`)
+            .then(response => response.json())
+            .then(data => {
+                const container = document.getElementById('documentsList');
+                if (data.length === 0) {
+                    container.innerHTML = `<div class="text-center py-5 text-muted"><i class="fas fa-folder-open fa-3x mb-3"></i><p>Нет документов</p></div>`;
+                    return;
+                }
+                container.innerHTML = data.map(doc => `
+                    <div class="card mb-3">
+                        <div class="card-body d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="mb-1">${escapeHtml(doc.title)}</h6>
+                                <small class="text-muted">${escapeHtml(doc.description || 'Без описания')}</small>
+                                <div class="mt-1"><small><i class="fas fa-user"></i> ${escapeHtml(doc.uploaded_by)} | ${doc.created_at}</small></div>
+                            </div>
+                            <div class="d-flex gap-2">
+                                <a href="/download/${doc.id}" class="btn btn-sm btn-outline-premium"><i class="fas fa-download"></i></a>
+                                <button class="btn btn-sm btn-outline-danger-custom" onclick="deleteDocument(${doc.id})"><i class="fas fa-trash"></i></button>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+            });
+    }
+    
+    function escapeHtml(text) {
+        if (!text) return '';
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+    
+    function deleteDocument(docId) {
+        if (confirm('Удалить документ?')) {
+            fetch(`/delete-document/${docId}`, { method: 'POST' }).then(() => loadDocuments());
+        }
+    }
+    
+    function openUploadModal() {
+        new bootstrap.Modal(document.getElementById('uploadModal')).show();
+    }
+    
+    document.getElementById('uploadForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const formData = new FormData(this);
+        fetch('/upload-document', { method: 'POST', body: formData })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    bootstrap.Modal.getInstance(document.getElementById('uploadModal')).hide();
+                    loadDocuments();
+                } else alert(data.error || 'Ошибка');
+            });
+    });
+    
+    loadDocuments();
+</script>
+{% endblock %}

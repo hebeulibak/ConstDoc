@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+
+{% block title %}Просмотр: {{ doc.title }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .image-toolbar {
+        background: #f8f9fa;
+        padding: 10px 15px;
+        border-radius: 12px;
+        margin-bottom: 20px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+    .image-container {
+        text-align: center;
+        background: #f0f0f0;
+        border-radius: 12px;
+        padding: 20px;
+        min-height: calc(100vh - 200px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .image-container img {
+        max-width: 100%;
+        max-height: calc(100vh - 200px);
+        border-radius: 12px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+    }
+    .doc-info {
+        font-size: 14px;
+        color: #666;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="mb-3">
+    <div class="image-toolbar">
+        <div>
+            <a href="{{ url_for('documents_section', site_id=doc.site_id, section=doc.section) }}" class="btn btn-secondary">
+                ← Назад к документам
+            </a>
+        </div>
+        <div class="doc-info">
+            <strong>{{ doc.title }}</strong>
+            {% if doc.document_number %}
+            <span class="text-muted">| №{{ doc.document_number }}</span>
+            {% endif %}
+        </div>
+        <div>
+            <a href="{{ file_url }}" class="btn btn-primary" download>
+                ⬇️ Скачать изображение
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="image-container">
+    <img src="{{ file_url }}" alt="{{ doc.title }}">
+</div>
+{% endblock %}

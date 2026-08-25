@@ -1,0 +1,426 @@
+{% extends "base.html" %}
+
+{% block title %}⚡ Срочный расчёт материалов{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* ФОРСИРОВАННОЕ ОТОБРАЖЕНИЕ */
+    .row {
+        display: flex !important;
+        flex-wrap: wrap !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+    }
+    
+    .col-lg-8, .col-md-5, .col-md-7 {
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+    }
+    
+    .card {
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        background: var(--bg-card) !important;
+        border: 1px solid var(--border) !important;
+        margin-bottom: 20px !important;
+        /* Убираем все анимации и трансформации */
+        transform: none !important;
+        transition: none !important;
+    }
+    
+    .card-body {
+        display: block !important;
+        padding: 20px !important;
+    }
+    
+    .card-header {
+        display: block !important;
+        visibility: visible !important;
+    }
+    
+    /* Убираем анимацию у карточки при наведении */
+    .card:hover {
+        transform: none !important;
+        box-shadow: none !important;
+    }
+    
+    .tab-content, .tab-pane {
+        display: block !important;
+        visibility: visible !important;
+    }
+    
+    .nav-tabs {
+        display: flex !important;
+        visibility: visible !important;
+    }
+    
+    .form-group, .mb-3, .mb-4 {
+        display: block !important;
+        visibility: visible !important;
+    }
+    
+    .alert {
+        display: block !important;
+        visibility: visible !important;
+    }
+    
+    .container-fluid {
+        display: block !important;
+        visibility: visible !important;
+    }
+    
+    /* Убираем анимацию поднятия */
+    .calc-card {
+        border: none;
+        border-radius: 20px;
+        overflow: hidden;
+        transform: none !important;
+        transition: none !important;
+    }
+    
+    .calc-card:hover {
+        transform: none !important;
+        box-shadow: none !important;
+    }
+    
+    .result-alert {
+        border-radius: 16px;
+        border-left: 4px solid var(--accent);
+    }
+    
+    .material-quantity {
+        font-size: 1.4rem;
+        font-weight: bold;
+        color: var(--primary);
+    }
+    
+    .result-item {
+        padding: 10px 0;
+        border-bottom: 1px solid var(--border);
+    }
+    
+    .result-item:last-child {
+        border-bottom: none;
+    }
+    
+    /* Убираем анимацию у всех кнопок */
+    .btn {
+        transform: none !important;
+        transition: none !important;
+    }
+    
+    .btn:hover {
+        transform: none !important;
+    }
+    
+    /* Убираем анимацию у select и input */
+    .form-select, .form-control {
+        transform: none !important;
+        transition: none !important;
+    }
+    
+    /* Кнопка назад */
+    .back-button {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        background: var(--bg-card);
+        color: var(--text-primary);
+        padding: 10px 20px;
+        border-radius: 40px;
+        text-decoration: none;
+        font-size: 0.9rem;
+        margin-bottom: 20px;
+        border: 1px solid var(--border);
+        cursor: pointer;
+    }
+    
+    .back-button:hover {
+        border-color: var(--accent);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0">
+    <!-- Кнопка назад - УМНАЯ -->
+    <div class="mb-3">
+        <a href="javascript:void(0);" onclick="goBack()" class="back-button">
+            <i class="fas fa-arrow-left"></i> Назад
+        </a>
+    </div>
+    
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card calc-card">
+                <div class="card-header" style="background: linear-gradient(135deg, var(--primary), var(--primary-dark)); color: white;">
+                    <h4 class="mb-0">
+                        <i class="fas fa-bolt"></i> ⚡ Срочный расчёт материалов
+                    </h4>
+                </div>
+                <div class="card-body">
+                    
+                    <!-- Выбор категории -->
+                    <div class="mb-4">
+                        <label class="form-label fw-semibold">Категория</label>
+                        <select class="form-select form-select-lg" id="categorySelect">
+                            <option value="construction">🏗️ Строительные работы</option>
+                            <option value="metal">🔩 Металлопрокат</option>
+                            <option value="asphalt">🛣️ Асфальтирование</option>
+                        </select>
+                    </div>
+                    
+                    <!-- Блок для строительных работ -->
+                    <div id="constructionBlock">
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Вид работ</label>
+                            <select class="form-select" id="constructionSelect">
+                                <option value="">-- Выберите --</option>
+                                {% for cat, items in categories.items() %}
+                                    <optgroup label="{{ cat }}">
+                                        {% for item in items %}
+                                            <option value="{{ item.key }}">{{ item.name }}</option>
+                                        {% endfor %}
+                                    </optgroup>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Объём (м²/м³)</label>
+                            <input type="number" class="form-control" id="constructionQuantity" step="0.1" placeholder="Например: 50">
+                        </div>
+                    </div>
+                    
+                    <!-- Блок для металлопроката -->
+                    <div id="metalBlock" style="display: none;">
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Металлоизделие</label>
+                            <select class="form-select" id="metalSelect">
+                                <option value="">-- Выберите --</option>
+                                {% for metal in metal_items %}
+                                    <option value="{{ metal.key }}" data-weight="{{ metal.weight_per_m }}" data-type="{{ metal.type }}">
+                                        {{ metal.name }}
+                                        {% if metal.weight_per_m %}
+                                            ({{ metal.weight_per_m }} кг/м)
+                                        {% endif %}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="mb-3" id="metalLengthGroup">
+                            <label class="form-label fw-semibold">Длина (м)</label>
+                            <input type="number" class="form-control" id="metalLength" step="0.1" placeholder="Например: 25">
+                        </div>
+                        <div class="mb-3" id="metalThicknessGroup" style="display: none;">
+                            <label class="form-label fw-semibold">Толщина листа (мм)</label>
+                            <input type="number" class="form-control" id="metalThickness" step="0.1" placeholder="Например: 10">
+                        </div>
+                    </div>
+                    
+                    <!-- Блок для асфальта -->
+                    <div id="asphaltBlock" style="display: none;">
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Тип асфальта</label>
+                            <select class="form-select" id="asphaltSelect">
+                                <option value="">-- Выберите --</option>
+                                {% for asphalt in asphalt_items %}
+                                    <option value="{{ asphalt.key }}">{{ asphalt.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Площадь (м²)</label>
+                            <input type="number" class="form-control" id="asphaltArea" step="0.1" placeholder="Например: 500">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Толщина слоя (см)</label>
+                            <input type="number" class="form-control" id="asphaltThickness" step="0.5" value="5" placeholder="5">
+                        </div>
+                    </div>
+                    
+                    <button class="btn btn-premium w-100 py-2 mt-3" onclick="calculate()">
+                        🔢 Рассчитать расход материалов
+                    </button>
+                    
+                    <!-- Результат -->
+                    <div id="resultBlock" style="display: none;" class="result-alert alert mt-4">
+                        <h5 id="resultTitle"></h5>
+                        <hr>
+                        <div id="resultDetails"></div>
+                    </div>
+                    
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Функция умного возврата
+function goBack() {
+    if (document.referrer && document.referrer !== window.location.href) {
+        window.history.back();
+    } else {
+        window.location.href = "{{ url_for('index') }}";
+    }
+}
+
+// Переключение между блоками при смене категории
+document.getElementById('categorySelect').addEventListener('change', function() {
+    const category = this.value;
+    
+    document.getElementById('constructionBlock').style.display = category === 'construction' ? 'block' : 'none';
+    document.getElementById('metalBlock').style.display = category === 'metal' ? 'block' : 'none';
+    document.getElementById('asphaltBlock').style.display = category === 'asphalt' ? 'block' : 'none';
+    
+    // Скрываем результат при смене категории
+    document.getElementById('resultBlock').style.display = 'none';
+});
+
+// Обработчик для металлопроката (показ/скрытие толщины для листа)
+document.getElementById('metalSelect')?.addEventListener('change', function() {
+    const selected = this.options[this.selectedIndex];
+    const metalType = selected.getAttribute('data-type');
+    if (metalType === 'sheet') {
+        document.getElementById('metalLengthGroup').style.display = 'none';
+        document.getElementById('metalThicknessGroup').style.display = 'block';
+    } else {
+        document.getElementById('metalLengthGroup').style.display = 'block';
+        document.getElementById('metalThicknessGroup').style.display = 'none';
+    }
+});
+
+// Основная функция расчёта
+function calculate() {
+    const category = document.getElementById('categorySelect').value;
+    
+    if (category === 'construction') {
+        calculateConstruction();
+    } else if (category === 'metal') {
+        calculateMetal();
+    } else if (category === 'asphalt') {
+        calculateAsphalt();
+    }
+}
+
+function calculateConstruction() {
+    const materialKey = document.getElementById('constructionSelect').value;
+    const quantity = document.getElementById('constructionQuantity').value;
+    
+    if (!materialKey) { alert('Выберите вид работ'); return; }
+    if (!quantity || quantity <= 0) { alert('Введите объём работ'); return; }
+    
+    fetch('/api/calculate/construction', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ 
+            material_key: materialKey, 
+            quantity: parseFloat(quantity), 
+            price_per_unit: 0
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        document.getElementById('resultTitle').innerHTML = `<i class="fas fa-chart-line"></i> ${data.work_name}`;
+        
+        let html = `<div class="result-item"><strong>📐 Объём работ:</strong> ${data.quantity} ${data.unit}</div>`;
+        html += `<div class="result-item"><strong>📦 ${data.main_material.name}:</strong> <span class="material-quantity">${data.main_material.qty_with_waste}</span> ${data.main_material.unit}</div>`;
+        
+        if (data.additional_materials.length > 0) {
+            html += `<div class="result-item mt-2"><strong>🧩 Дополнительные материалы:</strong></div>`;
+            data.additional_materials.forEach(add => {
+                html += `<div class="result-item" style="padding-left: 20px;">📌 ${add.name}: ${add.qty_with_waste} ${add.unit}</div>`;
+            });
+        }
+        
+        document.getElementById('resultDetails').innerHTML = html;
+        document.getElementById('resultBlock').style.display = 'block';
+    })
+    .catch(error => console.error('Ошибка:', error));
+}
+
+function calculateMetal() {
+    const metalKey = document.getElementById('metalSelect').value;
+    const selected = document.getElementById('metalSelect').options[document.getElementById('metalSelect').selectedIndex];
+    const metalType = selected.getAttribute('data-type');
+    
+    let length = document.getElementById('metalLength').value;
+    let thickness = null;
+    
+    if (metalType === 'sheet') {
+        thickness = document.getElementById('metalThickness').value;
+        if (!thickness) { alert('Введите толщину листа'); return; }
+    }
+    
+    if (!metalKey) { alert('Выберите металлоизделие'); return; }
+    if (!length || length <= 0) { alert('Введите длину/площадь'); return; }
+    
+    const requestData = { metal_key: metalKey, length: parseFloat(length), price_per_kg: 0 };
+    if (thickness) requestData.thickness = parseFloat(thickness);
+    
+    fetch('/api/calculate/metal', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(requestData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        document.getElementById('resultTitle').innerHTML = `<i class="fas fa-chart-line"></i> ${data.work_name}`;
+        
+        let html = '';
+        if (data.thickness) {
+            html += `<div class="result-item"><strong>📐 Площадь:</strong> ${data.length} м²</div>`;
+            html += `<div class="result-item"><strong>📏 Толщина:</strong> ${data.thickness} мм</div>`;
+        } else {
+            html += `<div class="result-item"><strong>📐 Длина:</strong> ${data.length} м</div>`;
+            if (data.weight_per_m) {
+                html += `<div class="result-item"><strong>⚖️ Вес 1 метра:</strong> ${data.weight_per_m} кг</div>`;
+            }
+        }
+        html += `<div class="result-item"><strong>⚖️ ОБЩИЙ ВЕС:</strong> <span class="material-quantity">${data.weight_kg}</span> кг</div>`;
+        
+        document.getElementById('resultDetails').innerHTML = html;
+        document.getElementById('resultBlock').style.display = 'block';
+    })
+    .catch(error => console.error('Ошибка:', error));
+}
+
+function calculateAsphalt() {
+    const asphaltKey = document.getElementById('asphaltSelect').value;
+    const area = document.getElementById('asphaltArea').value;
+    const thickness = document.getElementById('asphaltThickness').value;
+    
+    if (!asphaltKey) { alert('Выберите тип асфальта'); return; }
+    if (!area || area <= 0) { alert('Введите площадь'); return; }
+    if (!thickness || thickness <= 0) { alert('Введите толщину слоя'); return; }
+    
+    fetch('/api/calculate/asphalt', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ 
+            asphalt_key: asphaltKey, 
+            area: parseFloat(area), 
+            thickness: parseFloat(thickness), 
+            price_per_kg: 0 
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        document.getElementById('resultTitle').innerHTML = `<i class="fas fa-chart-line"></i> ${data.work_name}`;
+        
+        let html = `
+            <div class="result-item"><strong>📐 Площадь:</strong> ${data.area} м²</div>
+            <div class="result-item"><strong>📏 Толщина слоя:</strong> ${data.thickness} см</div>
+            <div class="result-item"><strong>🛣️ РАСХОД АСФАЛЬТА:</strong> <span class="material-quantity">${data.consumption_kg}</span> кг</div>
+            <div class="result-item"><strong>🚛 Это:</strong> ${data.consumption_tons} тонн</div>
+        `;
+        
+        document.getElementById('resultDetails').innerHTML = html;
+        document.getElementById('resultBlock').style.display = 'block';
+    })
+    .catch(error => console.error('Ошибка:', error));
+}
+</script>
+{% endblock %}

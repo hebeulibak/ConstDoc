@@ -1,0 +1,329 @@
+{% extends "base.html" %}
+
+{% block title %}{{ site.name }} - Управление объектом{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Шапка объекта */
+    .site-header {
+        background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+        color: white;
+        border-radius: 24px;
+        padding: 24px;
+        margin-bottom: 24px;
+    }
+    
+    .site-avatar {
+        display: flex;
+        align-items: flex-start;
+        gap: 20px;
+        flex-wrap: wrap;
+    }
+    
+    .avatar-image, .avatar-placeholder {
+        width: 80px;
+        height: 80px;
+        border-radius: 20px;
+        object-fit: cover;
+        background: rgba(255,255,255,0.15);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 40px;
+        cursor: pointer;
+        border: 2px solid var(--accent);
+        transition: all 0.3s;
+    }
+    
+    .avatar-image:hover, .avatar-placeholder:hover {
+        transform: scale(1.05);
+        box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    }
+    
+    .site-info {
+        flex: 1;
+    }
+    
+    .site-info h1 {
+        font-size: 1.5rem;
+        margin-bottom: 8px;
+    }
+    
+    .site-address {
+        font-size: 0.85rem;
+        opacity: 0.85;
+        margin-bottom: 12px;
+    }
+    
+    .site-details {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 16px;
+        margin-top: 8px;
+    }
+    
+    .site-detail {
+        font-size: 0.8rem;
+        background: rgba(255,255,255,0.1);
+        padding: 6px 12px;
+        border-radius: 20px;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    .site-detail i {
+        width: 16px;
+    }
+    
+    /* Кнопка назад */
+    .back-button {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        background: var(--bg-card);
+        color: var(--text-primary);
+        padding: 10px 20px;
+        border-radius: 40px;
+        text-decoration: none;
+        font-size: 0.9rem;
+        margin-bottom: 20px;
+        border: 1px solid var(--border);
+        transition: all 0.3s;
+        cursor: pointer;
+    }
+    
+    .back-button:hover {
+        transform: translateX(-5px);
+        border-color: var(--accent);
+    }
+    
+    /* Сетка кнопок навигации - ЦВЕТНЫЕ КНОПКИ */
+    .nav-buttons-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 16px;
+        margin-bottom: 24px;
+    }
+    
+    /* Цвета для каждой кнопки */
+    .nav-button:nth-child(1) { background: linear-gradient(135deg, #1a3a3a, #2d6a4f); }
+    .nav-button:nth-child(2) { background: linear-gradient(135deg, #1e3a5f, #0284c7); }
+    .nav-button:nth-child(3) { background: linear-gradient(135deg, #4a2a1a, #ea580c); }
+    .nav-button:nth-child(4) { background: linear-gradient(135deg, #2e1a5f, #7c3aed); }
+    .nav-button:nth-child(5) { background: linear-gradient(135deg, #5f1a1a, #dc2626); }
+    .nav-button:nth-child(6) { background: linear-gradient(135deg, #1a5f2a, #16a34a); }
+    .nav-button:nth-child(7) { background: linear-gradient(135deg, #5f4a1a, #d97706); }
+    .nav-button:nth-child(8) { background: linear-gradient(135deg, #1a5f5f, #0d9488); }
+    
+    .nav-button {
+        border-radius: 20px;
+        padding: 24px 12px;
+        text-align: center;
+        text-decoration: none;
+        transition: all 0.3s ease;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 12px;
+        cursor: pointer;
+        box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+        color: white;
+        border: none;
+    }
+    
+    .nav-button i {
+        font-size: 36px;
+        color: white;
+        text-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    }
+    
+    .nav-button span {
+        font-size: 1rem;
+        font-weight: 700;
+        letter-spacing: 0.5px;
+        color: white;
+    }
+    
+    .nav-button .button-count {
+        font-size: 0.8rem;
+        background: rgba(255,255,255,0.25);
+        color: white;
+        padding: 4px 12px;
+        border-radius: 30px;
+        margin-top: 4px;
+        font-weight: 600;
+    }
+    
+    .nav-button:hover {
+        transform: translateY(-5px) scale(1.02);
+        box-shadow: 0 15px 30px rgba(0,0,0,0.3);
+        filter: brightness(1.05);
+    }
+    
+    .nav-button:active {
+        transform: translateY(0px) scale(0.98);
+    }
+    
+    /* Для планшетов */
+    @media (min-width: 768px) {
+        .nav-buttons-grid {
+            grid-template-columns: repeat(3, 1fr);
+        }
+    }
+    
+    /* Для десктопов */
+    @media (min-width: 1024px) {
+        .nav-buttons-grid {
+            grid-template-columns: repeat(4, 1fr);
+        }
+    }
+    
+    .btn-premium {
+        background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 40px;
+        font-size: 0.85rem;
+        transition: all 0.3s;
+    }
+    
+    .btn-premium:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(26, 58, 58, 0.3);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0">
+    <!-- Кнопка назад - УМНАЯ -->
+    <a href="javascript:void(0);" onclick="goBack()" class="back-button">
+        <i class="fas fa-arrow-left"></i> Назад
+    </a>
+    
+    <!-- Шапка объекта с полной информацией -->
+    <div class="site-header">
+        <div class="site-avatar">
+            <div onclick="openAvatarUpload()">
+                {% if site.avatar_filename %}
+                <img src="{{ url_for('uploaded_file', filename='avatars/' + site.avatar_filename) }}" class="avatar-image" alt="Аватар объекта">
+                {% else %}
+                <div class="avatar-placeholder">
+                    <i class="fas fa-building"></i>
+                </div>
+                {% endif %}
+            </div>
+            
+            <div class="site-info">
+                <h1>{{ site.name }}</h1>
+                <p class="site-address"><i class="fas fa-map-marker-alt"></i> {{ site.address }}</p>
+                <div class="site-details">
+                    <div class="site-detail">
+                        <i class="fas fa-user-tie"></i>
+                        <span>Заказчик: {{ site.customer or 'Не указан' }}</span>
+                    </div>
+                    <div class="site-detail">
+                        <i class="fas fa-hard-hat"></i>
+                        <span>Подрядчик: {{ site.contractor or 'Не указан' }}</span>
+                    </div>
+                    <div class="site-detail">
+                        <i class="fas fa-calendar-alt"></i>
+                        <span>Начало: {{ site.start_date or 'Не указана' }}</span>
+                    </div>
+                    {% if site.end_date %}
+                    <div class="site-detail">
+                        <i class="fas fa-flag-checkered"></i>
+                        <span>Окончание: {{ site.end_date }}</span>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Кнопки-ссылки для навигации по объекту -->
+    <div class="nav-buttons-grid">
+        <a href="{{ url_for('journal', site_id=site.id) }}" class="nav-button">
+            <i class="fas fa-book"></i>
+            <span>Журнал работ</span>
+            <span class="button-count">{{ stats.journal_count or 0 }} записей</span>
+        </a>
+        <a href="{{ url_for('site_incoming', site_id=site.id) }}" class="nav-button">
+            <i class="fas fa-download"></i>
+            <span>Входящие</span>
+            <span class="button-count">{{ stats.incoming_count or 0 }} документов</span>
+        </a>
+        <a href="{{ url_for('site_outgoing', site_id=site.id) }}" class="nav-button">
+            <i class="fas fa-upload"></i>
+            <span>Исходящие</span>
+            <span class="button-count">{{ stats.outgoing_count or 0 }} документов</span>
+        </a>
+        <a href="{{ url_for('site_executive', site_id=site.id) }}" class="nav-button">
+            <i class="fas fa-file-alt"></i>
+            <span>Исполнительная</span>
+            <span class="button-count">{{ stats.executive_count or 0 }} документов</span>
+        </a>
+        <a href="{{ url_for('site_media', site_id=site.id) }}" class="nav-button">
+            <i class="fas fa-camera"></i>
+            <span>Фото/Видео</span>
+        </a>
+        <a href="{{ url_for('site_reports', site_id=site.id) }}" class="nav-button">
+            <i class="fas fa-chart-bar"></i>
+            <span>Отчёты</span>
+        </a>
+        <a href="{{ url_for('site_schedule', site_id=site.id) }}" class="nav-button">
+            <i class="fas fa-calendar-alt"></i>
+            <span>График работ</span>
+        </a>
+        <!-- 👇 НОВАЯ КНОПКА КАЛЬКУЛЯТОРА 👇 -->
+        <a href="{{ url_for('site_calculator', site_id=site.id) }}" class="nav-button">
+            <i class="fas fa-calculator"></i>
+            <span>Калькулятор</span>
+            <span class="button-count">материалов</span>
+        </a>
+        <!-- 👆 👆 👆 -->
+    </div>
+</div>
+
+<!-- Модальное окно для загрузки аватара -->
+<div class="modal fade" id="avatarModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-4">
+            <div class="modal-header" style="background: var(--primary); color: white;">
+                <h5 class="modal-title">Загрузить фото объекта</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="avatarForm" method="POST" enctype="multipart/form-data" action="{{ url_for('upload_avatar', site_id=site.id) }}">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Фото объекта</label>
+                        <input type="file" name="avatar" class="form-control" required accept="image/*">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                    <button type="submit" class="btn btn-premium">Сохранить</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    function openAvatarUpload() {
+        const modal = new bootstrap.Modal(document.getElementById('avatarModal'));
+        modal.show();
+    }
+    
+    // Функция умного возврата (должна быть в base.html, но на всякий случай дублируем)
+    function goBack() {
+        if (document.referrer && document.referrer !== window.location.href) {
+            window.history.back();
+        } else {
+            window.location.href = "{{ url_for('index') }}";
+        }
+    }
+</script>
+{% endblock %}

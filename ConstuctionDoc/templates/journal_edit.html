@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+
+{% block title %}Редактирование записи{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('index') }}">Главная</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('journal', site_id=entry.site_id) }}">Журнал работ</a></li>
+            <li class="breadcrumb-item active">Редактирование</li>
+        </ol>
+    </nav>
+</div>
+
+<div class="card">
+    <div class="card-header bg-warning">
+        <h4 class="mb-0"><i class="fas fa-edit"></i> Редактирование записи #{{ entry.id }}</h4>
+    </div>
+    <div class="card-body">
+        <form method="POST">
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Дата</label>
+                    <input type="date" name="date" class="form-control" value="{{ entry.date }}" required>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Вид работ</label>
+                    <input type="text" name="work_type" class="form-control" value="{{ entry.work_type or '' }}">
+                </div>
+            </div>
+            
+            <div class="mb-3">
+                <label class="form-label">Описание</label>
+                <textarea name="work_description" class="form-control" rows="3">{{ entry.work_description or '' }}</textarea>
+            </div>
+            
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Место</label>
+                    <input type="text" name="location" class="form-control" value="{{ entry.location or '' }}">
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Исполнитель</label>
+                    <input type="text" name="executor" class="form-control" value="{{ entry.executor or '' }}">
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Ответственный</label>
+                    <input type="text" name="responsible_person" class="form-control" value="{{ entry.responsible_person or '' }}">
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Кол-во рабочих</label>
+                    <input type="number" name="workers_count" class="form-control" value="{{ entry.workers_count or 0 }}">
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Объём</label>
+                    <input type="number" name="volume" class="form-control" step="0.01" value="{{ entry.volume or 0 }}">
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Ед. измерения</label>
+                    <select name="volume_unit" class="form-select">
+                        <option value="м³" {% if entry.volume_unit == 'м³' %}selected{% endif %}>м³</option>
+                        <option value="м²" {% if entry.volume_unit == 'м²' %}selected{% endif %}>м²</option>
+                        <option value="м" {% if entry.volume_unit == 'м' %}selected{% endif %}>м</option>
+                        <option value="т" {% if entry.volume_unit == 'т' %}selected{% endif %}>т</option>
+                        <option value="кг" {% if entry.volume_unit == 'кг' %}selected{% endif %}>кг</option>
+                        <option value="шт" {% if entry.volume_unit == 'шт' %}selected{% endif %}>шт</option>
+                    </select>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Начало</label>
+                    <input type="time" name="start_time" class="form-control" value="{{ entry.start_time or '' }}">
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Окончание</label>
+                    <input type="time" name="end_time" class="form-control" value="{{ entry.end_time or '' }}">
+                </div>
+            </div>
+            
+            <div class="mb-3">
+                <label class="form-label">Примечания</label>
+                <textarea name="notes" class="form-control" rows="2">{{ entry.notes or '' }}</textarea>
+            </div>
+            
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-primary">💾 Сохранить</button>
+                <a href="{{ url_for('journal', site_id=entry.site_id) }}" class="btn btn-secondary">Отмена</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+
+{% block title %}Добавить документ{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0"><i class="fas fa-plus"></i> Добавить документ</h4>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('add_document_route') }}" enctype="multipart/form-data">
+                        <input type="hidden" name="site_id" value="{{ site_id }}">
+                        <input type="hidden" name="section" value="{{ section }}">
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Файл документа *</label>
+                            <input type="file" name="file" class="form-control" accept=".pdf,.doc,.docx,.xls,.xlsx,.txt" required>
+                            <small class="text-muted">Поддерживаются: PDF, DOC, DOCX, XLS, XLSX, TXT</small>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Название документа *</label>
+                            <input type="text" name="title" class="form-control" required>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <label class="form-label">Номер документа</label>
+                                <input type="text" name="document_number" class="form-control" placeholder="Например: 123/А-01">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Дата</label>
+                                <input type="date" name="date" class="form-control" value="{{ now.strftime('%Y-%m-%d') if now else '' }}">
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3 mt-2">
+                            <label class="form-label">Описание</label>
+                            <textarea name="description" class="form-control" rows="3" placeholder="Краткое описание документа..."></textarea>
+                        </div>
+                        
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-upload"></i> Загрузить
+                            </button>
+                            <a href="{{ url_for('documents_section', site_id=site_id, section=section) }}" class="btn btn-secondary">
+                                <i class="fas fa-times"></i> Отмена
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

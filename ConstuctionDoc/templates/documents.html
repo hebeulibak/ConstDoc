@@ -1,0 +1,206 @@
+{% extends "base.html" %}
+
+{% block title %}{{ section_name }} - {{ site.name }}{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('index') }}">Главная</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('site_detail', site_id=site.id) }}">{{ site.name }}</a></li>
+            <li class="breadcrumb-item active">{{ section_name }}</li>
+        </ol>
+    </nav>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="btn-group flex-wrap justify-content-center d-flex" role="group">
+            <a href="{{ url_for('documents_section', site_id=site.id, section='incoming') }}" class="btn btn-outline-primary {% if section == 'incoming' %}active{% endif %}">📥 Входящие</a>
+            <a href="{{ url_for('documents_section', site_id=site.id, section='outgoing') }}" class="btn btn-outline-primary {% if section == 'outgoing' %}active{% endif %}">📤 Исходящие</a>
+            <a href="{{ url_for('documents_section', site_id=site.id, section='acts') }}" class="btn btn-outline-primary {% if section == 'acts' %}active{% endif %}">📋 Акты</a>
+            <a href="{{ url_for('documents_section', site_id=site.id, section='journals') }}" class="btn btn-outline-primary {% if section == 'journals' %}active{% endif %}">📓 Журналы</a>
+            <a href="{{ url_for('documents_section', site_id=site.id, section='executive') }}" class="btn btn-outline-primary {% if section == 'executive' %}active{% endif %}">📐 Исполнительная</a>
+        </div>
+    </div>
+</div>
+
+<!-- Форма загрузки -->
+<div style="border:2px dashed #28a745; border-radius:10px; padding:20px; text-align:center; margin-bottom:20px; background:#e8f5e9;">
+    <div style="font-size:2rem;">📂</div>
+    <h5>Загрузить документы</h5>
+    <form id="uploadForm" enctype="multipart/form-data">
+        <input type="file" id="fileInput" name="files" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.jpg,.png" style="margin-bottom:10px;">
+        <br>
+        <button type="submit" class="btn btn-success">📤 Загрузить файлы</button>
+    </form>
+</div>
+
+<h4>📋 Список документов ({{ docs|length }} шт.)</h4>
+
+<div id="documentsList">
+    {% for doc in docs %}
+    <div style="border:1px solid #ddd; border-radius:8px; margin-bottom:10px; padding:12px; background:white;">
+        <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+            <div style="font-size:2rem;">
+                {% if doc.file_path and '.pdf' in doc.file_path.lower() %}📄
+                {% elif doc.file_path and ('.doc' in doc.file_path.lower() or '.docx' in doc.file_path.lower()) %}📝
+                {% elif doc.file_path and ('.xls' in doc.file_path.lower() or '.xlsx' in doc.file_path.lower()) %}📊
+                {% else %}📁{% endif %}
+            </div>
+            <div style="flex:1; min-width:150px;">
+                <strong>{{ doc.title|e }}</strong><br>
+                <small class="text-muted">📅 {{ doc.date or 'Дата не указана' }} | 🔖 {{ doc.document_number or 'Без номера' }}</small>
+                {% if doc.description %}
+                <br><small class="text-muted">{{ doc.description[:100]|e }}{% if doc.description|length > 100 %}...{% endif %}</small>
+                {% endif %}
+            </div>
+            <div>
+                {% if doc.file_path %}
+                {% set filename = doc.file_path.split('/')[-1] if '/' in doc.file_path else doc.file_path.split('\\')[-1] %}
+                <a href="{{ url_for('uploaded_file', filename=filename) }}" class="btn btn-sm btn-primary" target="_blank">📖 Открыть</a>
+                <a href="{{ url_for('uploaded_file', filename=filename) }}" class="btn btn-sm btn-success" download>⬇️ Скачать</a>
+                {% endif %}
+                <button class="btn btn-sm btn-danger" onclick="deleteDocument({{ doc.id }})">🗑️</button>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="alert alert-info text-center">📁 Нет документов. Загрузите первый документ!</div>
+    {% endfor %}
+</div>
+
+<script>
+// Функция для получения CSRF токена (если нужен)
+function getCsrfToken() {
+    const meta = document.querySelector('meta[name="csrf-token"]');
+    return meta ? meta.getAttribute('content') : '';
+}
+
+// Загрузка документов
+const uploadForm = document.getElementById('uploadForm');
+if (uploadForm) {
+    uploadForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const fileInput = document.getElementById('fileInput');
+        if (!fileInput) return;
+        
+        const files = fileInput.files;
+        
+        if (files.length === 0) {
+            alert('Выберите файлы для загрузки');
+            return;
+        }
+        
+        const formData = new FormData();
+        for (let i = 0; i < files.length; i++) {
+            formData.append('files[]', files[i]);
+        }
+        formData.append('site_id', '{{ site.id }}');
+        formData.append('section', '{{ section }}');
+        
+        // Показываем индикатор загрузки
+        const submitBtn = uploadForm.querySelector('button[type="submit"]');
+        const originalText = submitBtn ? submitBtn.innerHTML : '';
+        if (submitBtn) {
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Загрузка...';
+            submitBtn.disabled = true;
+        }
+        
+        try {
+            const response = await fetch('/document/upload-multiple', {
+                method: 'POST',
+                body: formData
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                alert(`✅ Загружено ${result.uploaded.length} файлов`);
+                location.reload();
+            } else {
+                alert('❌ Ошибка загрузки: ' + (result.error || 'Неизвестная ошибка'));
+            }
+        } catch (error) {
+            console.error('Ошибка:', error);
+            alert('❌ Ошибка загрузки: ' + error.message);
+        } finally {
+            if (submitBtn) {
+                submitBtn.innerHTML = originalText;
+                submitBtn.disabled = false;
+            }
+        }
+    });
+}
+
+// Удаление документа
+async function deleteDocument(docId) {
+    if (!confirm('🗑️ Вы уверены, что хотите удалить этот документ?')) return;
+    
+    try {
+        const response = await fetch(`/document/delete-ajax/${docId}`, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            location.reload();
+        } else {
+            alert('❌ Ошибка удаления: ' + (result.error || 'Неизвестная ошибка'));
+        }
+    } catch (error) {
+        console.error('Ошибка:', error);
+        alert('❌ Ошибка удаления: ' + error.message);
+    }
+}
+
+// Drag & Drop для зоны загрузки
+const dropZone = document.querySelector('div[style*="border:2px dashed"]');
+if (dropZone) {
+    dropZone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        dropZone.style.background = '#d4edda';
+        dropZone.style.borderColor = '#28a745';
+    });
+    
+    dropZone.addEventListener('dragleave', (e) => {
+        e.preventDefault();
+        dropZone.style.background = '#e8f5e9';
+        dropZone.style.borderColor = '#28a745';
+    });
+    
+    dropZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropZone.style.background = '#e8f5e9';
+        dropZone.style.borderColor = '#28a745';
+        
+        const files = Array.from(e.dataTransfer.files);
+        if (files.length > 0) {
+            const fileInput = document.getElementById('fileInput');
+            if (fileInput) {
+                // Создаём новый FileList (сложно, поэтому просто показываем сообщение)
+                alert(`Вы перетащили ${files.length} файлов. Нажмите кнопку "Загрузить файлы" для загрузки.`);
+                // Можно также программно добавить файлы, но это сложно из-за безопасности
+            }
+        }
+    });
+}
+</script>
+
+<style>
+    .btn-group .btn.active {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-color: #667eea;
+    }
+    .btn-group .btn:hover {
+        transform: translateY(-2px);
+        transition: all 0.2s;
+    }
+</style>
+{% endblock %}

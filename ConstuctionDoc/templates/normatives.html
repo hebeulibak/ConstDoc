@@ -1,0 +1,469 @@
+{% extends "base.html" %}
+
+{% block title %}Нормативная база{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* ФОРСИРОВАННОЕ ОТОБРАЖЕНИЕ КАРТОЧЕК */
+    .row {
+        display: flex !important;
+        flex-wrap: wrap !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+    }
+
+    .col-md-6, .col-lg-4 {
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+    }
+
+    .card {
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        background: white !important;
+        border: 1px solid #ddd !important;
+        margin-bottom: 20px !important;
+    }
+
+    .card-body {
+        display: block !important;
+        padding: 20px !important;
+    }
+
+    /* Временные яркие цвета для теста */
+    .doc-number {
+        color: #d4a373 !important;
+        font-size: 18px !important;
+        font-weight: bold !important;
+    }
+
+    .card-title {
+        color: #1a3a3a !important;
+        font-size: 16px !important;
+    }
+
+    /* Убедимся, что карточки не скрыты */
+    #normativesList {
+        display: flex !important;
+        flex-wrap: wrap !important;
+    }
+
+    .normative-card {
+        transition: transform 0.2s, box-shadow 0.2s;
+        border: none;
+        border-radius: 20px;
+        overflow: hidden;
+    }
+    .normative-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+    }
+    .star-favorite {
+        cursor: pointer;
+        transition: transform 0.2s;
+        text-decoration: none;
+        font-size: 1.2rem;
+    }
+    .star-favorite:hover {
+        transform: scale(1.2);
+    }
+    .filter-bar {
+        background: var(--bs-card-bg);
+        padding: 24px;
+        border-radius: 20px;
+        margin-bottom: 28px;
+        box-shadow: 0 2px 12px rgba(0,0,0,0.05);
+        border: 1px solid var(--border);
+    }
+    .doc-type-badge {
+        font-size: 0.7rem;
+        padding: 5px 12px;
+        border-radius: 20px;
+        font-weight: 600;
+    }
+    .status-badge {
+        font-size: 0.7rem;
+        padding: 3px 10px;
+        border-radius: 20px;
+    }
+    .card-footer {
+        border-top: none;
+        padding-top: 0;
+        padding-bottom: 20px;
+    }
+    .doc-number {
+        font-family: 'Courier New', monospace;
+        font-weight: 700;
+        color: var(--accent);
+        font-size: 0.9rem;
+    }
+    .btn-outline-premium {
+        border: 1px solid var(--primary);
+        color: var(--primary);
+        transition: all 0.2s;
+        border-radius: 12px;
+    }
+    .btn-outline-premium:hover {
+        background: var(--primary);
+        color: white;
+    }
+    
+    /* Дополнительные форсированные стили */
+    .normative-card {
+        background: white !important;
+        color: #1e293b !important;
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+    }
+
+    .normative-card .card-body {
+        background: white !important;
+        padding: 20px !important;
+    }
+
+    .normative-card .doc-number {
+        color: #d4a373 !important;
+        font-weight: bold !important;
+        font-size: 1rem !important;
+    }
+
+    .normative-card .card-title {
+        color: #1a3a3a !important;
+        font-size: 0.95rem !important;
+        font-weight: 600 !important;
+    }
+
+    .normative-card .text-muted {
+        color: #5b6e8c !important;
+    }
+
+    /* Тёмная тема */
+    [data-bs-theme="dark"] .normative-card {
+        background: #1e293b !important;
+    }
+
+    [data-bs-theme="dark"] .normative-card .card-body {
+        background: #1e293b !important;
+    }
+
+    [data-bs-theme="dark"] .normative-card .card-title {
+        color: #f1f5f9 !important;
+    }
+    
+    /* Кнопка назад */
+    .back-button {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        background: var(--bg-card);
+        color: var(--text-primary);
+        padding: 10px 20px;
+        border-radius: 40px;
+        text-decoration: none;
+        font-size: 0.9rem;
+        border: 1px solid var(--border);
+        transition: all 0.3s;
+        cursor: pointer;
+        margin-bottom: 20px;
+    }
+    
+    .back-button:hover {
+        transform: translateX(-5px);
+        border-color: var(--accent);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="container-fluid px-0">
+    <!-- Кнопка назад -->
+    <a href="javascript:void(0);" onclick="goBack()" class="back-button">
+        <i class="fas fa-arrow-left"></i> Назад
+    </a>
+    
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="fas fa-book" style="color: var(--accent);"></i> Нормативная документация</h2>
+        <button class="btn btn-premium" data-bs-toggle="modal" data-bs-target="#addNormativeModal">
+            <i class="fas fa-plus"></i> Добавить документ
+        </button>
+    </div>
+
+    <!-- Фильтры -->
+    <div class="filter-bar">
+        <div class="row g-3">
+            <div class="col-md-7">
+                <form method="GET" action="{{ url_for('normatives') }}" class="d-flex gap-2" id="searchForm">
+                    <div class="input-group">
+                        <span class="input-group-text bg-transparent">
+                            <i class="fas fa-search text-muted"></i>
+                        </span>
+                        <input type="text" name="search" class="form-control" 
+                               placeholder="Поиск по номеру, названию, содержанию..." 
+                               value="{{ search or '' }}"
+                               style="border-left: none;">
+                    </div>
+                    <button type="submit" class="btn btn-premium">
+                        <i class="fas fa-search"></i> Поиск
+                    </button>
+                </form>
+            </div>
+            <div class="col-md-5">
+                <select class="form-select" id="typeFilter" style="border-radius: 12px;">
+                    <option value="">Все типы документов</option>
+                    <option value="СП" {% if selected_type == 'СП' %}selected{% endif %}>📘 СП (Своды правил)</option>
+                    <option value="ГОСТ" {% if selected_type == 'ГОСТ' %}selected{% endif %}>📗 ГОСТ</option>
+                    <option value="СНиП" {% if selected_type == 'СНиП' %}selected{% endif %}>📙 СНиП</option>
+                    <option value="Закон" {% if selected_type == 'Закон' %}selected{% endif %}>⚖️ Законы</option>
+                    <option value="Приказ" {% if selected_type == 'Приказ' %}selected{% endif %}>📄 Приказы</option>
+                    <option value="СанПиН" {% if selected_type == 'СанПиН' %}selected{% endif %}>🩺 СанПиН</option>
+                </select>
+            </div>
+        </div>
+        
+        {% if search or selected_type %}
+        <div class="mt-3">
+            <a href="{{ url_for('normatives') }}" class="btn btn-sm btn-outline-secondary rounded-3">
+                <i class="fas fa-times"></i> Сбросить фильтры
+            </a>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Список документов -->
+    <div class="row" id="normativesList">
+        {% for doc in normatives %}
+        <div class="col-md-6 col-lg-4 mb-4" data-aos="fade-up" data-aos-delay="{{ loop.index * 50 }}">
+            <div class="card h-100 normative-card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <span class="badge doc-type-badge" style="background: linear-gradient(135deg, var(--primary), var(--primary-dark));">
+                            <i class="fas fa-file-alt"></i> {{ doc.doc_type or 'Документ' }}
+                        </span>
+                        <a href="{{ url_for('favorite_toggle', doc_id=doc.id) }}" class="star-favorite" title="{% if doc.is_favorite %}Убрать из избранного{% else %}Добавить в избранное{% endif %}" onclick="event.preventDefault(); toggleFavorite({{ doc.id }}, this)">
+                            <i class="fas fa-star{% if not doc.is_favorite %}-o text-muted{% endif %}" style="color: {% if doc.is_favorite %}#f5b042{% endif %};"></i>
+                        </a>
+                    </div>
+                    
+                    <div class="doc-number mb-2">{{ doc.code }}</div>
+                    <h6 class="card-title mb-2" style="font-size: 0.95rem; line-height: 1.4;">{{ doc.title }}</h6>
+                    {% if doc.description %}
+                    <p class="small text-secondary mb-3">
+                        {{ doc.description[:100] }}{% if doc.description|length > 100 %}...{% endif %}
+                    </p>
+                    {% endif %}
+                    
+                    <div class="mt-3 d-flex gap-2 flex-wrap">
+                        {% if doc.status %}
+                        <span class="badge {% if doc.status == 'действует' %}bg-success{% elif doc.status == 'заменен' %}bg-warning text-dark{% elif doc.status == 'отменен' %}bg-danger{% else %}bg-secondary{% endif %} status-badge">
+                            <i class="fas fa-info-circle"></i> {{ doc.status }}
+                        </span>
+                        {% endif %}
+                        {% if doc.actual_date %}
+                        <span class="badge bg-info status-badge">
+                            <i class="fas fa-calendar"></i> Актуален: {{ doc.actual_date }}
+                        </span>
+                        {% endif %}
+                    </div>
+                    
+                    {% if doc.tags %}
+                    <div class="mt-3">
+                        <small class="text-muted">
+                            <i class="fas fa-tags"></i> 
+                            {% set tag_string = doc.tags|string %}
+                            {{ tag_string[:60] }}{% if tag_string|length > 60 %}...{% endif %}
+                        </small>
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="card-footer bg-transparent">
+                    <a href="{{ url_for('normative_view', doc_id=doc.id) }}" class="btn btn-outline-premium w-100">
+                        <i class="fas fa-eye"></i> Открыть документ
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <div class="col-12">
+            <div class="alert alert-info text-center py-5 rounded-4" data-aos="fade-up">
+                <i class="fas fa-book-open fa-4x mb-3 d-block" style="color: var(--accent);"></i>
+                <h5 style="color: var(--primary);">Документов не найдено</h5>
+                <p class="mb-0">Попробуйте изменить параметры поиска или сбросить фильтры</p>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Пагинация -->
+    {% if pagination and pagination.pages > 1 %}
+    <div class="pagination justify-content-center mt-4">
+        {% if pagination.has_prev %}
+            <a href="{{ url_for('normatives', page=pagination.prev_num, search=search, type=selected_type) }}" class="page-link">←</a>
+        {% endif %}
+        
+        {% for page_num in pagination.iter_pages(left_edge=2, right_edge=2, left_current=2, right_current=2) %}
+            {% if page_num %}
+                {% if page_num == pagination.page %}
+                    <span class="page-link active">{{ page_num }}</span>
+                {% else %}
+                    <a href="{{ url_for('normatives', page=page_num, search=search, type=selected_type) }}" class="page-link">{{ page_num }}</a>
+                {% endif %}
+            {% else %}
+                <span class="page-link">...</span>
+            {% endif %}
+        {% endfor %}
+        
+        {% if pagination.has_next %}
+            <a href="{{ url_for('normatives', page=pagination.next_num, search=search, type=selected_type) }}" class="page-link">→</a>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+
+<!-- Modal добавления документа -->
+<div class="modal fade" id="addNormativeModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content rounded-4">
+            <div class="modal-header" style="background: var(--primary); color: white; border: none; border-radius: 16px 16px 0 0;">
+                <h5 class="modal-title">
+                    <i class="fas fa-plus"></i> Добавить нормативный документ
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('add_normative') }}" id="addNormativeForm">
+                <div class="modal-body p-4">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-semibold">Тип документа *</label>
+                            <select name="doc_type" class="form-control rounded-3" required>
+                                <option value="ГОСТ">ГОСТ</option>
+                                <option value="СНиП">СНиП</option>
+                                <option value="СП">СП (Свод правил)</option>
+                                <option value="СанПиН">СанПиН</option>
+                                <option value="Закон">Закон</option>
+                                <option value="Приказ">Приказ</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-semibold">Номер документа *</label>
+                            <input type="text" name="code" class="form-control rounded-3" required placeholder="ГОСТ Р 21.1101-2013">
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Название *</label>
+                        <input type="text" name="title" class="form-control rounded-3" required placeholder="Полное наименование документа">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Описание / Содержание</label>
+                        <textarea name="description" class="form-control rounded-3" rows="3" placeholder="Краткое описание документа..."></textarea>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label fw-semibold">Статус</label>
+                            <select name="status" class="form-control rounded-3">
+                                <option value="действует">Действует</option>
+                                <option value="заменен">Заменен</option>
+                                <option value="отменен">Отменен</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label fw-semibold">Актуален до</label>
+                            <input type="text" name="actual_date" class="form-control rounded-3" placeholder="2025">
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label fw-semibold">Категория</label>
+                            <input type="text" name="category" class="form-control rounded-3" placeholder="Строительство, Проектирование...">
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Теги (через запятую)</label>
+                        <input type="text" name="tags" class="form-control rounded-3" placeholder="бетон, арматура, проектирование">
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0 pb-4 px-4">
+                    <button type="button" class="btn btn-secondary rounded-3" data-bs-dismiss="modal">Отмена</button>
+                    <button type="submit" class="btn btn-premium rounded-3">
+                        <i class="fas fa-save"></i> Добавить
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Функция умного возврата
+    function goBack() {
+        if (document.referrer && document.referrer !== window.location.href) {
+            window.history.back();
+        } else {
+            window.location.href = "{{ url_for('index') }}";
+        }
+    }
+    
+    // Функция для фильтрации по типу (без автоматической отправки)
+    document.getElementById('typeFilter')?.addEventListener('change', function() {
+        const selectedType = this.value;
+        const currentUrl = new URL(window.location.href);
+        
+        if (selectedType) {
+            currentUrl.searchParams.set('type', selectedType);
+        } else {
+            currentUrl.searchParams.delete('type');
+        }
+        
+        const searchInput = document.querySelector('input[name="search"]');
+        if (searchInput && searchInput.value) {
+            currentUrl.searchParams.set('search', searchInput.value);
+        } else {
+            currentUrl.searchParams.delete('search');
+        }
+        
+        currentUrl.searchParams.delete('page');
+        window.location.href = currentUrl.toString();
+    });
+    
+    // Функция для добавления в избранное без перезагрузки
+    function toggleFavorite(docId, element) {
+        fetch(`/favorite-toggle/${docId}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const icon = element.querySelector('i');
+                    if (data.is_favorite) {
+                        icon.classList.remove('fa-star-o');
+                        icon.classList.add('fa-star');
+                        icon.style.color = '#f5b042';
+                    } else {
+                        icon.classList.remove('fa-star');
+                        icon.classList.add('fa-star-o');
+                        icon.style.color = '';
+                    }
+                }
+            })
+            .catch(error => console.error('Ошибка:', error));
+    }
+    
+    // Поддержка Enter в поле поиска
+    document.querySelector('input[name="search"]')?.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            document.getElementById('searchForm')?.submit();
+        }
+    });
+    
+    // Инициализация AOS
+    document.addEventListener('DOMContentLoaded', function() {
+        if (typeof AOS !== 'undefined') {
+            AOS.refresh();
+        }
+    });
+</script>
+{% endblock %}

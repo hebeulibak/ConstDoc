@@ -1,0 +1,331 @@
+{% extends "base.html" %}
+
+{% block title %}Главная — Строительный журнал{% endblock %}
+
+{% block extra_css %}
+<style>
+    .stat-card {
+        background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+        color: white;
+        padding: 24px;
+        border-radius: 20px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .stat-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: linear-gradient(90deg, var(--accent), transparent);
+    }
+    
+    .stat-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 12px 24px rgba(26, 58, 58, 0.3);
+    }
+    
+    .stat-card i {
+        font-size: 2.5rem;
+        margin-bottom: 12px;
+        opacity: 0.9;
+    }
+    
+    .stat-card h3 {
+        font-size: 2rem;
+        font-weight: 700;
+        margin-bottom: 8px;
+    }
+    
+    .stat-card p {
+        margin: 0;
+        opacity: 0.9;
+        font-size: 0.9rem;
+    }
+    
+    .site-card {
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        border: none;
+        border-radius: 20px;
+        overflow: hidden;
+        cursor: pointer;
+    }
+    
+    .site-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 12px 28px rgba(0, 0, 0, 0.15);
+    }
+    
+    .site-card .card-header {
+        background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+        color: white;
+        padding: 16px 20px;
+        border: none;
+    }
+    
+    .progress-custom {
+        height: 8px;
+        border-radius: 10px;
+        background-color: #e2e8f0;
+        overflow: hidden;
+    }
+    
+    .progress-bar-custom {
+        background: linear-gradient(90deg, var(--success), var(--accent));
+        width: 0%;
+        height: 100%;
+        border-radius: 10px;
+        transition: width 0.6s ease;
+    }
+    
+    .badge-active {
+        background: var(--success);
+        color: white;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+    
+    .badge-completed {
+        background: #64748b;
+        color: white;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+    
+    /* Кнопка с троеточием */
+    .btn-icon {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s;
+        background: none;
+        border: none;
+        color: var(--text-secondary);
+        cursor: pointer;
+    }
+    
+    .btn-icon:hover {
+        background: var(--bg-page);
+        color: var(--accent);
+    }
+    
+    .dropdown-item.text-danger:hover {
+        background: var(--danger);
+        color: white !important;
+    }
+    
+    a.text-decoration-none {
+        text-decoration: none;
+    }
+    
+    a.text-decoration-none:hover .site-card {
+        transform: translateY(-4px);
+        box-shadow: 0 12px 28px rgba(0, 0, 0, 0.15);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
+        <h2 class="mb-0">
+            <i class="fas fa-chart-line" style="color: var(--accent);"></i> 
+            Строительные объекты
+        </h2>
+        <button type="button" class="btn btn-premium" data-bs-toggle="modal" data-bs-target="#addSiteModal">
+            <i class="fas fa-plus"></i> Добавить объект
+        </button>
+    </div>
+
+    <!-- Статистика -->
+    <div class="row mb-5">
+        <div class="col-md-4 col-6 mb-3">
+            <div class="stat-card" data-aos="fade-up" data-aos-delay="0">
+                <i class="fas fa-building"></i>
+                <h3>{{ sites|length }}</h3>
+                <p>Всего объектов</p>
+            </div>
+        </div>
+        <div class="col-md-4 col-6 mb-3">
+            <div class="stat-card" data-aos="fade-up" data-aos-delay="100" style="background: linear-gradient(135deg, #2d6a4f, #1f543d);">
+                <i class="fas fa-calendar-check"></i>
+                <h3>{{ active_count }}</h3>
+                <p>Активных</p>
+            </div>
+        </div>
+        <div class="col-md-4 col-6 mb-3">
+            <div class="stat-card" data-aos="fade-up" data-aos-delay="200" style="background: linear-gradient(135deg, #64748b, #475569);">
+                <i class="fas fa-check-circle"></i>
+                <h3>{{ completed_count }}</h3>
+                <p>Завершённых</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Список объектов -->
+    {% if sites %}
+    <div class="row">
+        {% for site in sites %}
+        <div class="col-md-6 col-lg-4 mb-4">
+            <a href="{{ url_for('site_detail', site_id=site.id) }}" class="text-decoration-none">
+                <div class="card site-card h-100" data-aos="fade-up" data-aos-delay="{{ loop.index * 50 }}">
+                    <div class="card-header">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">
+                                <i class="fas fa-hard-hat"></i> {{ site.name }}
+                            </h5>
+                            <span class="{% if site.end_date and site.end_date != '' %}badge-completed{% else %}badge-active{% endif %}">
+                                <i class="fas fa-chart-simple"></i> {% if site.end_date and site.end_date != '' %}Завершён{% else %}Активен{% endif %}
+                            </span>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <p class="card-text text-muted small mb-3">
+                            <i class="fas fa-map-marker-alt"></i> {{ site.address or 'Адрес не указан' }}
+                        </p>
+                        
+                        <!-- Прогресс объекта -->
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <small class="text-muted">Прогресс строительства</small>
+                                <small class="text-muted fw-bold">
+                                    {% if site.end_date and site.end_date != '' %}
+                                        100%
+                                    {% else %}
+                                        {% if site.entries|length > 0 %}
+                                            В работе ({{ site.entries|length }} записей)
+                                        {% else %}
+                                            Начато
+                                        {% endif %}
+                                    {% endif %}
+                                </small>
+                            </div>
+                            <div class="progress-custom">
+                                <div class="progress-bar-custom" style="width: {% if site.end_date and site.end_date != '' %}100{% else %}{% if site.entries|length > 0 %}35{% else %}5{% endif %}{% endif %}%"></div>
+                            </div>
+                        </div>
+                        
+                        <hr class="my-3">
+                        
+                        <div class="small mb-3">
+                            <div class="mb-2">
+                                <i class="fas fa-user-tie" style="color: var(--accent); width: 24px;"></i> 
+                                <strong>Заказчик:</strong> {{ site.customer or 'Не указан' }}
+                            </div>
+                            <div class="mb-2">
+                                <i class="fas fa-hard-hat" style="color: var(--accent); width: 24px;"></i> 
+                                <strong>Подрядчик:</strong> {{ site.contractor or 'Не указан' }}
+                            </div>
+                            <div class="mb-2">
+                                <i class="fas fa-calendar" style="color: var(--accent); width: 24px;"></i> 
+                                <strong>Начало:</strong> {{ site.start_date or 'Не указана' }}
+                            </div>
+                            {% if site.end_date and site.end_date != '' %}
+                            <div>
+                                <i class="fas fa-flag-checkered" style="color: var(--accent); width: 24px;"></i> 
+                                <strong>Окончание:</strong> {{ site.end_date }}
+                            </div>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Меню с троеточием вместо кнопки удалить -->
+                        <div class="d-flex justify-content-end" onclick="event.stopPropagation()">
+                            <div class="dropdown">
+                                <button class="btn-icon" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <i class="fas fa-ellipsis-v fa-lg"></i>
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end">
+                                    <li>
+                                        <button class="dropdown-item text-danger" onclick="deleteSite({{ site.id }}, '{{ site.name }}')">
+                                            <i class="fas fa-trash-alt me-2"></i> Удалить объект
+                                        </button>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </a>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="text-center py-5 bg-white rounded-4 shadow-sm" data-aos="fade-up">
+        <i class="fas fa-building fa-4x mb-3" style="color: var(--text-muted);"></i>
+        <h4 style="color: var(--primary);">Нет добавленных объектов</h4>
+        <p class="text-muted">Нажмите кнопку "Добавить объект", чтобы начать работу</p>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Modal добавления объекта -->
+<div class="modal fade" id="addSiteModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-4">
+            <div class="modal-header" style="background: var(--primary); color: white; border: none; border-radius: 16px 16px 0 0;">
+                <h5 class="modal-title">
+                    <i class="fas fa-plus"></i> Добавить объект
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('add_site_route') }}">
+                <div class="modal-body p-4">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Название объекта <span class="text-danger">*</span></label>
+                        <input type="text" name="name" class="form-control rounded-3" required placeholder="Например: ЖК «Янтарный»">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Адрес</label>
+                        <input type="text" name="address" class="form-control rounded-3" placeholder="г. Москва, ул. Строителей, 15">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Заказчик</label>
+                        <input type="text" name="customer" class="form-control rounded-3" placeholder="ООО «Девелопмент Групп»">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Подрядчик</label>
+                        <input type="text" name="contractor" class="form-control rounded-3" placeholder="АО «СтройИнвест»">
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Дата начала</label>
+                            <input type="date" name="start_date" class="form-control rounded-3" value="{{ current_date }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Дата окончания</label>
+                            <input type="date" name="end_date" class="form-control rounded-3">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0 pb-4 px-4">
+                    <button type="button" class="btn btn-secondary rounded-3" data-bs-dismiss="modal">Отмена</button>
+                    <button type="submit" class="btn btn-premium rounded-3">
+                        <i class="fas fa-save"></i> Добавить
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+function deleteSite(siteId, siteName) {
+    if (confirm(`⚠️ Вы уверены, что хотите удалить объект "${siteName}"?\n\nВсе данные по объекту (журнал работ, записи) будут безвозвратно удалены!`)) {
+        window.location.href = `/site/delete/${siteId}`;
+    }
+}
+</script>
+{% endblock %}
